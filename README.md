@@ -72,18 +72,16 @@ git clone --recurse-submodules https://github.com/BenLooper/megacat ~/dotfiles
 cd ~/dotfiles
 ```
 
-**3. Update your username** in `home/default.nix` if it's not `ben`:
-
-```nix
-home.username    = "yourname";
-home.homeDirectory = "/home/yourname";
-```
-
-**4. Apply**:
+**3. Apply** — no username editing needed, it auto-detects who you are:
 
 ```bash
-nix run home-manager/master -- switch --flake .#ben
+nix run home-manager/master -- switch --flake .#default --impure
 ```
+
+> **What's `--impure`?** Nix flakes evaluate in a sandbox by default and
+> can't read environment variables. `--impure` lifts that restriction so the
+> config can read `$USER` and `$HOME` to detect your username automatically.
+> It's perfectly safe for a dotfiles repo.
 
 The first run downloads packages (~1 GB) and takes a few minutes. After that
 it's fast because everything is cached.
@@ -109,7 +107,7 @@ WSL2 is just Linux — the same config works. Ghostty is a native Linux app, so:
 
 ```bash
 dots
-# same as: home-manager switch --flake ~/dotfiles#ben
+# same as: home-manager switch --flake ~/dotfiles#default --impure
 ```
 
 **Add a new CLI tool:**

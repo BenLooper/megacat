@@ -20,15 +20,23 @@
   ];
 
   # ============================================================
-  # YOUR IDENTITY
+  # YOUR IDENTITY — auto-detected, no editing required
   # ============================================================
-  # These must match your actual user account on whatever machine you're on.
-  # Run `whoami` to see your username, `echo $HOME` to see your home directory.
+  # Instead of hardcoding "ben" here, we read your username and home
+  # directory from the environment at evaluation time.
   #
-  # On WSL, your home is usually /home/<your-linux-username>.
-  # Change these when setting up on a new machine.
-  home.username    = "ben";
-  home.homeDirectory = "/home/ben";
+  # `builtins.getEnv "USER"` is Nix's equivalent of running `whoami`.
+  # `builtins.getEnv "HOME"` is Nix's equivalent of `echo $HOME`.
+  #
+  # This requires the `--impure` flag on every home-manager command
+  # (see the `dots` alias in shell.nix and bootstrap.sh).
+  # "Impure" just means "allowed to read environment variables" — it's
+  # a perfectly reasonable trade-off for a personal dotfiles repo.
+  #
+  # The payoff: anyone can clone this repo and apply it without changing
+  # a single file. It just works for their username automatically.
+  home.username    = builtins.getEnv "USER";
+  home.homeDirectory = builtins.getEnv "HOME";
 
   # ============================================================
   # STATE VERSION

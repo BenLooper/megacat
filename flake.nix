@@ -46,11 +46,20 @@
     in
     {
       # homeConfigurations is the standard attribute home-manager looks for.
-      # The key ("ben") is the name you use when applying the config:
-      #   home-manager switch --flake .#ben
+      # The key ("default") is the name you use when applying the config:
+      #   home-manager switch --flake .#default --impure
       #
-      # You can have multiple entries here for different users or machines.
-      homeConfigurations."ben" = home-manager.lib.homeManagerConfiguration {
+      # WHY "default" instead of your username?
+      # The actual username and home directory are read from the environment
+      # at evaluation time (see home/default.nix). This means the same config
+      # works for anyone who clones the repo, with no editing required.
+      #
+      # WHY --impure?
+      # Nix flakes evaluate in "pure" mode by default — they can't read your
+      # environment variables, which guarantees bit-for-bit reproducibility.
+      # We opt out of that with --impure so that builtins.getEnv can read
+      # $USER and $HOME. For a dotfiles repo this is a sensible trade-off.
+      homeConfigurations."default" = home-manager.lib.homeManagerConfiguration {
         inherit pkgs;
 
         # Our actual configuration lives in home/default.nix, which imports
@@ -64,11 +73,11 @@
   # ============================================================
   # If you get a Mac, you can add a second entry:
   #
-  #   homeConfigurations."ben-mac" = home-manager.lib.homeManagerConfiguration {
+  #   homeConfigurations."default-mac" = home-manager.lib.homeManagerConfiguration {
   #     pkgs = nixpkgs.legacyPackages."aarch64-darwin";   # Apple Silicon
   #     modules = [ ./home/default.nix ];
   #   };
   #
   # Then apply it with:
-  #   home-manager switch --flake .#ben-mac
+  #   home-manager switch --flake .#default-mac --impure
 }
