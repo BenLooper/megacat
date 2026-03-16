@@ -73,7 +73,9 @@
 
       # Apply your dotfiles changes and reload the environment.
       # After editing any file in this repo, run `dots` to apply it.
-      dots = "home-manager switch --flake ~/dotfiles#ben";
+      # `--impure` is required because we use builtins.getEnv in default.nix
+      # to auto-detect your username rather than hardcoding it.
+      dots = "home-manager switch --flake ~/dotfiles#default --impure";
     };
 
     # ============================================================
