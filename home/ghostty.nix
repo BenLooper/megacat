@@ -44,8 +44,10 @@
       # To install the font via Nix, add `pkgs.nerd-fonts.jetbrains-mono`
       # to home.packages in tools.nix.
       # ============================================================
-      font-family = "JetBrainsMono Nerd Font";
-      font-size   = 13;
+      # NOTE: Attribute names containing hyphens must be quoted in Nix.
+      # `font-family` without quotes would be parsed as `font minus family`.
+      "font-family" = "JetBrainsMono Nerd Font";
+      "font-size"   = 13;
 
       # ============================================================
       # THEME / COLORS
@@ -58,23 +60,23 @@
       # ============================================================
       # WINDOW
       # ============================================================
-      window-padding-x = 8;   # Pixels of space between text and left/right edges
-      window-padding-y = 6;   # Pixels of space between text and top/bottom edges
+      "window-padding-x" = 8;   # Pixels of space between text and left/right edges
+      "window-padding-y" = 6;   # Pixels of space between text and top/bottom edges
 
       # How the window title bar looks. "transparent" blends with the theme.
-      window-decoration = "server";
+      "window-decoration" = "server";
 
       # ============================================================
       # CURSOR
       # ============================================================
-      cursor-style         = "block";    # block | bar | underline
-      cursor-style-blink   = false;      # Blinking cursors can be distracting
+      "cursor-style"       = "block";    # block | bar | underline
+      "cursor-style-blink" = false;      # Blinking cursors can be distracting
 
       # ============================================================
       # SCROLLBACK
       # How many lines to remember when you scroll up.
       # ============================================================
-      scrollback-limit = 10000;
+      "scrollback-limit" = 10000;
 
       # ============================================================
       # SHELL INTEGRATION
@@ -82,43 +84,45 @@
       # working directory, mark command prompts, and more.
       # "detect" automatically enables it for supported shells (zsh works).
       # ============================================================
-      shell-integration = "detect";
+      "shell-integration" = "detect";
 
       # ============================================================
       # COPY ON SELECT
       # Automatically copy selected text to clipboard.
       # ============================================================
-      copy-on-select = false;   # Set to true if you prefer this behavior
-    };
+      "copy-on-select" = false;   # Set to true if you prefer this behavior
 
-    # ============================================================
-    # KEY BINDINGS
-    # Ghostty uses a simple key = action format.
-    # Full list of actions: https://ghostty.org/docs/config/keybind
-    # ============================================================
-    keybindings = {
-      # New tab / close tab
-      "ctrl+shift+t" = "new_tab";
-      "ctrl+shift+w" = "close_surface";
+      # ============================================================
+      # KEY BINDINGS
+      # Ghostty's config format uses repeated `keybind =` lines, so in
+      # home-manager we express them as a list of strings under `keybind`.
+      # Format: "modifiers+key=action"
+      # Full action list: https://ghostty.org/docs/config/keybind
+      # ============================================================
+      keybind = [
+        # New tab / close tab
+        "ctrl+shift+t=new_tab"
+        "ctrl+shift+w=close_surface"
 
-      # Navigate between tabs
-      "ctrl+shift+right" = "next_tab";
-      "ctrl+shift+left"  = "previous_tab";
+        # Navigate between tabs
+        "ctrl+shift+right=next_tab"
+        "ctrl+shift+left=previous_tab"
 
-      # Split the current pane
-      "ctrl+shift+d"       = "new_split:right";   # Vertical split
-      "ctrl+shift+minus"   = "new_split:down";    # Horizontal split
+        # Split the current pane
+        "ctrl+shift+d=new_split:right"      # Vertical split
+        "ctrl+shift+minus=new_split:down"   # Horizontal split
 
-      # Navigate between splits (vim-style)
-      "ctrl+shift+h" = "goto_split:left";
-      "ctrl+shift+l" = "goto_split:right";
-      "ctrl+shift+k" = "goto_split:top";
-      "ctrl+shift+j" = "goto_split:bottom";
+        # Navigate between splits (vim-style)
+        "ctrl+shift+h=goto_split:left"
+        "ctrl+shift+l=goto_split:right"
+        "ctrl+shift+k=goto_split:top"
+        "ctrl+shift+j=goto_split:bottom"
 
-      # Increase/decrease font size
-      "ctrl+equal" = "increase_font_size:1";
-      "ctrl+minus" = "decrease_font_size:1";
-      "ctrl+0"     = "reset_font_size";
+        # Increase/decrease font size
+        "ctrl+equal=increase_font_size:1"
+        "ctrl+minus=decrease_font_size:1"
+        "ctrl+zero=reset_font_size"
+      ];
     };
   };
 }
