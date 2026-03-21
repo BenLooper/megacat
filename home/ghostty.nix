@@ -44,8 +44,10 @@
       # To install the font via Nix, add `pkgs.nerd-fonts.jetbrains-mono`
       # to home.packages in tools.nix.
       # ============================================================
-      font-family = "JetBrainsMono Nerd Font";
-      font-size   = 13;
+      # NOTE: Attribute names containing hyphens must be quoted in Nix.
+      # `font-family` without quotes would be parsed as `font minus family`.
+      "font-family" = "JetBrainsMono Nerd Font";
+      "font-size"   = 13;
 
       # ============================================================
       # THEME / COLORS
@@ -58,23 +60,23 @@
       # ============================================================
       # WINDOW
       # ============================================================
-      window-padding-x = 8;   # Pixels of space between text and left/right edges
-      window-padding-y = 6;   # Pixels of space between text and top/bottom edges
+      "window-padding-x" = 8;   # Pixels of space between text and left/right edges
+      "window-padding-y" = 6;   # Pixels of space between text and top/bottom edges
 
       # How the window title bar looks. "transparent" blends with the theme.
-      window-decoration = "server";
+      "window-decoration" = "server";
 
       # ============================================================
       # CURSOR
       # ============================================================
-      cursor-style         = "block";    # block | bar | underline
-      cursor-style-blink   = false;      # Blinking cursors can be distracting
+      "cursor-style"       = "block";    # block | bar | underline
+      "cursor-style-blink" = false;      # Blinking cursors can be distracting
 
       # ============================================================
       # SCROLLBACK
       # How many lines to remember when you scroll up.
       # ============================================================
-      scrollback-limit = 10000;
+      "scrollback-limit" = 10000;
 
       # ============================================================
       # SHELL INTEGRATION
@@ -82,13 +84,13 @@
       # working directory, mark command prompts, and more.
       # "detect" automatically enables it for supported shells (zsh works).
       # ============================================================
-      shell-integration = "detect";
+      "shell-integration" = "detect";
 
       # ============================================================
       # COPY ON SELECT
       # Automatically copy selected text to clipboard.
       # ============================================================
-      copy-on-select = false;   # Set to true if you prefer this behavior
+      "copy-on-select" = false;   # Set to true if you prefer this behavior
     };
 
     # ============================================================
