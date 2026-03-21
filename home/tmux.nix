@@ -51,7 +51,7 @@
     aggressiveResize = true;
 
     # How long status messages stay visible (milliseconds).
-    displayTime = 2000;
+    escapeTime = 2000;
 
     # ============================================================
     # PLUGINS
