@@ -42,7 +42,10 @@
 
       # `pkgs` is the package set for our target system.
       # We use it to reference packages like pkgs.git, pkgs.zsh, etc.
-      pkgs = nixpkgs.legacyPackages.${system};
+      pkgs = import nixpkgs {
+        inherit system;
+        config.allowUnfree = true;
+      };
     in
     {
       # homeConfigurations is the standard attribute home-manager looks for.
