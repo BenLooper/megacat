@@ -36,6 +36,9 @@
     curl      # Make HTTP requests from the command line
     wget      # Download files
 
+    # ---- AI TOOLS ------------------------------------------
+    claude-code  # Anthropic's Claude Code CLI
+
     # ---- LANGUAGES -----------------------------------------
     go        # Go toolchain: compiler, `go` CLI, gofmt, etc.
 
