@@ -39,6 +39,10 @@
     # ---- AI TOOLS ------------------------------------------
     claude-code  # Anthropic's Claude Code CLI
 
+    # ---- GIT & DOCKER UI -----------------------------------
+    lazygit      # Terminal UI for git — stage, commit, diff, branch all from one screen
+    lazydocker   # Terminal UI for Docker — manage containers, images, logs interactively
+
     # ---- LANGUAGES -----------------------------------------
     go        # Go toolchain: compiler, `go` CLI, gofmt, etc.
 
