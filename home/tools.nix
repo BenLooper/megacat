@@ -36,6 +36,9 @@
     curl      # Make HTTP requests from the command line
     wget      # Download files
 
+    # ---- LANGUAGES -----------------------------------------
+    go        # Go toolchain: compiler, `go` CLI, gofmt, etc.
+
     # ---- MISC UTILITIES ------------------------------------
     tree      # Show directory structure as a tree
     unzip     # Extract .zip archives
