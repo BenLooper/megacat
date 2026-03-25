@@ -83,7 +83,7 @@
     # These lines are added to the end of your ~/.zshrc.
     # Use this for things that don't have a dedicated home-manager option.
     # ============================================================
-    initExtra = ''
+    initContent = ''
       # zoxide: a smarter `cd` that learns your most-visited directories.
       # Use `z <partial-name>` to jump anywhere. E.g. `z dots` → ~/dotfiles.
       # Install zoxide via tools.nix; this activates the zsh integration.
