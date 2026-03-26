@@ -36,9 +36,6 @@
     curl      # Make HTTP requests from the command line
     wget      # Download files
 
-    # ---- AI TOOLS ------------------------------------------
-    claude-code  # Anthropic's Claude Code CLI
-
     # ---- GIT & DOCKER UI -----------------------------------
     lazygit      # Terminal UI for git — stage, commit, diff, branch all from one screen
     lazydocker   # Terminal UI for Docker — manage containers, images, logs interactively

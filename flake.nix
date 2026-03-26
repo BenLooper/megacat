@@ -49,25 +49,31 @@
     in
     {
       # homeConfigurations is the standard attribute home-manager looks for.
-      # The key ("default") is the name you use when applying the config:
-      #   home-manager switch --flake .#default --impure
+      # The key is the profile name you use when applying the config:
+      #   home-manager switch --flake .#personal --impure
+      #   home-manager switch --flake .#work     --impure
       #
-      # WHY "default" instead of your username?
-      # The actual username and home directory are read from the environment
-      # at evaluation time (see home/default.nix). This means the same config
-      # works for anyone who clones the repo, with no editing required.
+      # Each profile shares the same base (home/default.nix) and adds its own
+      # profile module (home/profiles/personal.nix or work.nix) for things that
+      # differ between contexts — AI tools, the `dots` alias, etc.
       #
       # WHY --impure?
       # Nix flakes evaluate in "pure" mode by default — they can't read your
       # environment variables, which guarantees bit-for-bit reproducibility.
       # We opt out of that with --impure so that builtins.getEnv can read
       # $USER and $HOME. For a dotfiles repo this is a sensible trade-off.
-      homeConfigurations."default" = home-manager.lib.homeManagerConfiguration {
+      homeConfigurations."personal" = home-manager.lib.homeManagerConfiguration {
         inherit pkgs;
 
         # Our actual configuration lives in home/default.nix, which imports
         # all the individual module files.
-        modules = [ ./home/default.nix ];
+        modules = [ ./home/default.nix ./home/profiles/personal.nix ];
+      };
+
+      homeConfigurations."work" = home-manager.lib.homeManagerConfiguration {
+        inherit pkgs;
+
+        modules = [ ./home/default.nix ./home/profiles/work.nix ];
       };
     };
 
@@ -76,11 +82,11 @@
   # ============================================================
   # If you get a Mac, you can add a second entry:
   #
-  #   homeConfigurations."default-mac" = home-manager.lib.homeManagerConfiguration {
+  #   homeConfigurations."personal-mac" = home-manager.lib.homeManagerConfiguration {
   #     pkgs = nixpkgs.legacyPackages."aarch64-darwin";   # Apple Silicon
-  #     modules = [ ./home/default.nix ];
+  #     modules = [ ./home/default.nix ./home/profiles/personal.nix ];
   #   };
   #
   # Then apply it with:
-  #   home-manager switch --flake .#default-mac --impure
+  #   home-manager switch --flake .#personal-mac --impure
 }

@@ -77,7 +77,7 @@ export HOME="$(eval echo ~"$USER")"
 # the username, instead of hardcoding it. Nix flakes run in "pure" mode
 # by default (no env var access), so --impure opts out of that restriction.
 # It just means "read the environment" — it's safe and fine for dotfiles.
-nix run home-manager/master -- switch --flake ".#default" --impure
+nix run home-manager/master -- switch --flake ".#personal" --impure
 
 # ============================================================
 # STEP 3: Set zsh as default shell
