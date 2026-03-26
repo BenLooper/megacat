@@ -37,7 +37,7 @@
     wget      # Download files
 
     # ---- AI TOOLS ------------------------------------------
-    claude-code  # Anthropic's Claude Code CLI
+    gh           # GitHub CLI — includes `gh copilot` for AI assistance
 
     # ---- GIT & DOCKER UI -----------------------------------
     lazygit      # Terminal UI for git — stage, commit, diff, branch all from one screen
