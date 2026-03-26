@@ -66,6 +66,11 @@ echo "      First run may take a while (downloading packages)..."
 echo ""
 cd "$DOTFILES_DIR"
 
+# Explicitly set USER and HOME so builtins.getEnv works correctly when
+# nix routes through the daemon (which doesn't always inherit shell env vars).
+export USER="$(id -un)"
+export HOME="$(eval echo ~"$USER")"
+
 # WHY --impure?
 # The config reads $USER and $HOME via builtins.getEnv to auto-detect
 # the username, instead of hardcoding it. Nix flakes run in "pure" mode
