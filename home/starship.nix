@@ -89,8 +89,8 @@
       # code, green otherwise. This gives instant visual feedback.
       # ============================================================
       character = {
-        success_symbol = "[𓂀](bold mauve)";
-        error_symbol   = "[𓂀](bold red)";
+        success_symbol = "[☽ ](bold mauve)";
+        error_symbol   = "[☽ ](bold red)";
       };
 
       # ============================================================
