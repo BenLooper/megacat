@@ -46,6 +46,7 @@
     # ---- LANGUAGES -----------------------------------------
     go        # Go toolchain: compiler, `go` CLI, gofmt, etc.
     bun       # Bun: fast JavaScript runtime, bundler, and package manager
+    nodejs    # Required by gh copilot extension
 
     # ---- MISC UTILITIES ------------------------------------
     tree      # Show directory structure as a tree
