@@ -10,6 +10,7 @@
 #   1. Installs Nix (if not already installed)
 #   2. Clones this dotfiles repo to ~/dotfiles (if not already there)
 #   3. Applies the home-manager configuration for the current user
+#   4. Sets zsh as the default login shell
 #
 # No username editing required — the config auto-detects who you are.
 # ============================================================
@@ -83,7 +84,12 @@ nix run home-manager/master -- switch --flake ".#default" --impure
 # ============================================================
 ZSH_PATH="$HOME/.nix-profile/bin/zsh"
 
-if [ "$SHELL" = "$ZSH_PATH" ]; then
+# Read the actual login shell from /etc/passwd (field 7), not $SHELL.
+# $SHELL reflects the shell that launched this script, which can differ
+# from the recorded login shell — especially on first run.
+CURRENT_LOGIN_SHELL="$(getent passwd "$USER" | cut -d: -f7)"
+
+if [ "$CURRENT_LOGIN_SHELL" = "$ZSH_PATH" ]; then
   echo "[3/3] zsh is already your default shell. Skipping."
 else
   echo "[3/3] Setting zsh as your default shell..."
