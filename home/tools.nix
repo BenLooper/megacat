@@ -45,6 +45,7 @@
     bun       # Bun: fast JavaScript runtime, bundler, and package manager
 
     # ---- MISC UTILITIES ------------------------------------
+    gnumake   # `make`: run Makefiles
     tree      # Show directory structure as a tree
     unzip     # Extract .zip archives
     which     # Show the full path of a command (`which git` → /nix/store/.../git)
