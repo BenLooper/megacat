@@ -32,9 +32,9 @@ echo ""
 # It's more reliable, works on more distros, supports uninstall,
 # and enables flakes by default (which we need).
 if command -v nix &>/dev/null; then
-  echo "[1/2] Nix is already installed. Skipping."
+  echo "[1/3] Nix is already installed. Skipping."
 else
-  echo "[1/2] Installing Nix via Determinate Systems installer..."
+  echo "[1/3] Installing Nix via Determinate Systems installer..."
   echo "      (This may ask for your sudo password)"
   echo ""
   curl --proto '=https' --tlsv1.2 -sSf -L https://install.determinate.systems/nix \
@@ -48,7 +48,7 @@ fi
 # ============================================================
 # STEP 2: Clone or update the dotfiles repo, then apply
 # ============================================================
-echo "[2/2] Setting up dotfiles repo..."
+echo "[2/3] Setting up dotfiles repo..."
 
 if [ -d "$DOTFILES_DIR/.git" ]; then
   echo "      Found existing repo at $DOTFILES_DIR — pulling latest..."
@@ -72,6 +72,23 @@ cd "$DOTFILES_DIR"
 # by default (no env var access), so --impure opts out of that restriction.
 # It just means "read the environment" — it's safe and fine for dotfiles.
 nix run home-manager/master -- switch --flake ".#default" --impure
+
+# ============================================================
+# STEP 3: Set zsh as default shell
+# ============================================================
+ZSH_PATH="$HOME/.nix-profile/bin/zsh"
+
+if [ "$SHELL" = "$ZSH_PATH" ]; then
+  echo "[3/3] zsh is already your default shell. Skipping."
+else
+  echo "[3/3] Setting zsh as your default shell..."
+  if ! grep -qF "$ZSH_PATH" /etc/shells; then
+    echo "      Adding $ZSH_PATH to /etc/shells (requires sudo)..."
+    echo "$ZSH_PATH" | sudo tee -a /etc/shells > /dev/null
+  fi
+  chsh -s "$ZSH_PATH"
+  echo "      Done! zsh will be your shell on next login."
+fi
 
 echo ""
 echo "======================================================"
