@@ -59,6 +59,20 @@
     PAGER  = "less";    # Program used to page through long output
   };
 
+  # ============================================================
+  # PATH EXTENSIONS
+  # ============================================================
+  # Binaries installed by language-specific package managers land outside
+  # the nix store and need to be added to PATH manually.
+  #
+  #   ~/.bun/bin  — packages installed with `bun install -g`
+  #   ~/go/bin    — binaries installed with `go install`
+  #
+  home.sessionPath = [
+    "$HOME/.bun/bin"
+    "$HOME/go/bin"
+  ];
+
   # Let home-manager manage itself. This installs the `home-manager`
   # CLI tool so you can run `home-manager switch` to apply changes.
   programs.home-manager.enable = true;
