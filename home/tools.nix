@@ -37,6 +37,7 @@
     wget      # Download files
 
     # ---- GIT & DOCKER UI -----------------------------------
+    gh           # GitHub CLI — interact with PRs, issues, repos from the terminal
     lazygit      # Terminal UI for git — stage, commit, diff, branch all from one screen
     lazydocker   # Terminal UI for Docker — manage containers, images, logs interactively
 

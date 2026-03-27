@@ -8,8 +8,8 @@
 { pkgs, ... }: {
 
   home.packages = with pkgs; [
-    gh       # GitHub CLI — includes `gh copilot` for AI assistance
-    nodejs   # Required by gh copilot extension
+    # gh is in tools.nix (shared); nodejs here is for `gh copilot` extension
+    nodejs
   ];
 
   programs.zsh.shellAliases = {
