@@ -40,6 +40,7 @@
     gh           # GitHub CLI — interact with PRs, issues, repos from the terminal
     lazygit      # Terminal UI for git — stage, commit, diff, branch all from one screen
     lazydocker   # Terminal UI for Docker — manage containers, images, logs interactively
+    devcontainer # Dev Containers CLI — create and manage dev container environments
 
     # ---- LANGUAGES -----------------------------------------
     go        # Go toolchain: compiler, `go` CLI, gofmt, etc.
