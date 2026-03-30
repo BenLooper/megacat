@@ -10,7 +10,6 @@
   home.packages = with pkgs; [
     # gh is in tools.nix (shared); nodejs here is for `gh copilot` extension
     nodejs
-    devcontainer
   ];
 
   programs.zsh.shellAliases = {
