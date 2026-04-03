@@ -75,6 +75,12 @@
 
         modules = [ ./home/default.nix ./home/profiles/work.nix ];
       };
+
+      homeConfigurations."ghostty-dev" = home-manager.lib.homeManagerConfiguration {
+        inherit pkgs;
+
+        modules = [ ./home/default.nix ./home/profiles/ghostty-dev.nix ];
+      };
     };
 
   # ============================================================

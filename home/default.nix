@@ -16,7 +16,6 @@
     ./editor.nix    # Neovim: installed + config symlinked from nvim/ submodule
     ./tools.nix     # CLI tools: ripgrep, bat, eza, direnv, etc.
     ./tmux.nix      # Tmux: terminal multiplexer (multiple windows in one terminal)
-    ./ghostty.nix   # Ghostty: the terminal emulator itself
     ./starship.nix  # Starship: prompt (directory, git, exit status, duration)
   ];
 
