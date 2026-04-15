@@ -56,6 +56,8 @@
     # JetBrainsMono Nerd Font adds icon glyphs used by eza's --icons flag.
     # If eza shows garbled characters instead of icons, this font is missing.
     nerd-fonts.jetbrains-mono
+
+    opencode
   ];
 
   # ============================================================
