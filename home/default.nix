@@ -48,6 +48,8 @@
   # breaking internal migration logic.
   home.stateVersion = "24.11";
 
+  news.display = "show";
+
   # ============================================================
   # ENVIRONMENT VARIABLES
   # ============================================================
