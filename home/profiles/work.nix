@@ -13,7 +13,6 @@
     dotnet-sdk
     uv
     microsoft-edge
-    msedgedriver
   ];
 
   programs.zsh.shellAliases = {
