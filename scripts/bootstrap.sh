@@ -41,9 +41,10 @@ else
   curl --proto '=https' --tlsv1.2 -sSf -L https://install.determinate.systems/nix \
     | sh -s -- install
   echo ""
-  echo "      Nix installed! Please restart your terminal and re-run this script."
-  echo "      Or run: source /nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh"
-  exit 0
+  echo "      Nix installed! Re-launching bootstrap script..."
+  echo ""
+  source /nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh
+  exec bash "$0" "$@"
 fi
 
 # ============================================================
