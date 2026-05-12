@@ -1,0 +1,14 @@
+# Pi coding agent — version the config, ignore the noise
+
+# Sessions — large, auto-generated history trees
+sessions/
+
+# Packages — managed by `pi install`, not git
+packages/
+git/
+
+# Auth — API keys and OAuth tokens
+auth/
+
+# Node modules from extensions
+node_modules/
