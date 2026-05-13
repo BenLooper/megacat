@@ -8,6 +8,7 @@ packages/
 git/
 
 # Auth — API keys and OAuth tokens
+auth.json
 auth/
 
 # Node modules from extensions
