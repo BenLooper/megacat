@@ -212,6 +212,23 @@ class DriveComponent {
 export default function (pi: ExtensionAPI) {
 	let driveActive = false;
 
+	// Register --drive flag for auto-start
+	pi.registerFlag("drive", {
+		description: "Start in drive mode",
+		type: "boolean",
+		default: false,
+	});
+
+	// Auto-activate if --drive flag is set
+	pi.on("session_start", async (_event, ctx) => {
+		if (!pi.getFlag("--drive") || !ctx.hasUI) return;
+		driveActive = true;
+		const context = await gatherContext(ctx.cwd);
+		pi.sendUserMessage(
+			`Drive mode active. Current context:\n\n${context}\n\nCall present_options now with 10 suggestions for things I might want to do.`,
+		);
+	});
+
 	// Only inject the drive system prompt when drive mode is active
 	pi.on("before_agent_start", async (event, _ctx) => {
 		if (!driveActive) return;

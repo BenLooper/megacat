@@ -73,6 +73,9 @@
 
       oc = "opencode";
       lg = "lazygit";
+
+      # Pi drive mode — keyboard-driven agent interaction
+      drive = "pi --no-session --drive";
     };
 
     # ============================================================
