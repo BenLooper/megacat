@@ -11,6 +11,7 @@
 { config, pkgs, ... }: {
 
   imports = [
+    ./pi.nix        # Pi: shared install + ~/.pi/agent symlinked config
     ./shell.nix     # zsh shell: history, aliases, fzf, zoxide
     ./git.nix       # Git: identity, default branch, aliases
     ./editor.nix    # Neovim: installed + config symlinked from nvim/ submodule
