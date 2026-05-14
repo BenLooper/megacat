@@ -33,10 +33,7 @@
       "$HOME/dotfiles/home/pi/agent" "$HOME/.pi/agent"
   '';
 
-  # pi install writes to this directory instead of the read-only nix store.
-  home.sessionVariables = {
-    PI_PACKAGE_DIR = "$HOME/.pi/agent/packages";
-  };
+  
 
   programs.zsh.shellAliases = {
     # Apply your dotfiles changes and reload the environment.

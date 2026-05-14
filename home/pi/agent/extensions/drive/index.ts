@@ -32,6 +32,7 @@ const execAsync = promisify(exec);
 
 type DriveResult =
 	| { type: "select"; text: string }
+	| { type: "follow"; text: string }
 	| { type: "typed"; text: string }
 	| { type: "reroll-one"; index: number; text: string }
 	| { type: "reroll-all" }
@@ -41,7 +42,22 @@ type UIState = "selecting" | "typing";
 
 type ActionEntry = { tool: string; summary: string };
 
+// ── Constants ────────────────────────────────────────────────────────────────
+
+const THINKING_CYCLE = ["off", "medium", "high"] as const;
+type ThinkingLevel = (typeof THINKING_CYCLE)[number];
+
 // ── Helpers ──────────────────────────────────────────────────────────────────
+
+/** Clear screen and scrollback buffer */
+function clearScreen(): void {
+	process.stdout.write("\x1b[2J\x1b[3J\x1b[H");
+}
+
+function nextThinkingLevel(current: string): ThinkingLevel {
+	const idx = THINKING_CYCLE.indexOf(current as ThinkingLevel);
+	return THINKING_CYCLE[(idx + 1) % THINKING_CYCLE.length]!;
+}
 
 function shortenPath(path: string): string {
 	const home = homedir();
@@ -58,7 +74,15 @@ const DRIVE_SYSTEM_PROMPT = [
 	"",
 	"After every completed action — and at the very start of the session — you MUST call present_options with exactly 10 options. Each option must be short (one line), specific, and immediately actionable given the current context. Avoid vague options like \"explore the codebase\". Be concrete: \"List all TypeScript files modified this week\", \"Run the test suite\", \"Show recent git commits\".",
 	"",
-	"When the user selects an option, execute it fully using your tools, then call present_options again. Never skip this step. Never output plain text. Always end with a present_options call.",
+	"There are two selection modes:",
+	"",
+	"1. **Normal select** (enter): The user picked an option and wants you to execute it FULLY and AUTONOMOUSLY. Do all the work — make every sub-decision yourself, use as many tools as needed — then call present_options with new options when done. Do NOT ask for intermediate decisions.",
+	"",
+	"2. **Follow mode** (f): The user picked an option but wants to FOLLOW ALONG step by step. Break the task into small incremental steps. After each individual tool call or small logical step, call present_options with 10 options that represent possible next steps for the current task. Include options to continue the obvious next step, take alternative approaches, skip ahead, or abort the task. The user will guide you through each decision.",
+	"",
+	"When the user types a free-form message (question, comment, or request), respond through the options themselves. Use option text to convey information, answer questions, or acknowledge what they said. For example, if they ask \"what branch am I on?\", include an option like \"You're on main — switch to a different branch\" alongside other relevant actions. The options ARE your voice — use them to communicate naturally while staying actionable.",
+	"",
+	"When the user selects an option, check whether it was a normal select or follow select — the message will tell you. Never skip the present_options call. Never output plain text. Always end with a present_options call.",
 	"",
 	"When making function calls using tools that accept array or object parameters ensure those are structured using JSON.",
 ].join("\n");
@@ -93,11 +117,8 @@ async function gatherContext(cwd: string): Promise<string> {
 // ── Silent tool rendering ────────────────────────────────────────────────────
 // Returns empty Text components so tool output is invisible in drive mode.
 
-const EMPTY = new Text("", 0, 0);
-const silentRender = {
-	renderCall: () => EMPTY,
-	renderResult: () => EMPTY,
-};
+// Return undefined so ToolExecutionComponent sets hideComponent = true
+// (returning empty Text still counts as content and renders a visible Box)
 
 // ── DriveComponent ───────────────────────────────────────────────────────────
 
@@ -112,18 +133,24 @@ class DriveComponent {
 	private done: (result: DriveResult) => void;
 	private cachedLines?: string[];
 	private cachedWidth?: number;
+	private thinkingLevel: string;
+	private onThinkingChange: (level: string) => void;
 
 	constructor(
 		options: string[],
 		actions: ActionEntry[],
 		tui: { requestRender: () => void },
 		theme: Theme,
+		thinkingLevel: string,
+		onThinkingChange: (level: string) => void,
 		done: (result: DriveResult) => void,
 	) {
 		this.options = options;
 		this.actions = actions;
 		this.tui = tui;
 		this.theme = theme;
+		this.thinkingLevel = thinkingLevel;
+		this.onThinkingChange = onThinkingChange;
 		this.done = done;
 	}
 
@@ -146,6 +173,8 @@ class DriveComponent {
 			this.tui.requestRender();
 		} else if (matchesKey(data, "enter")) {
 			this.done({ type: "select", text: this.options[this.cursor]! });
+		} else if (matchesKey(data, "f")) {
+			this.done({ type: "follow", text: this.options[this.cursor]! });
 		} else if (matchesKey(data, "t")) {
 			this.state = "typing";
 			this.inputBuffer = "";
@@ -159,6 +188,11 @@ class DriveComponent {
 			});
 		} else if (matchesKey(data, "shift+r")) {
 			this.done({ type: "reroll-all" });
+		} else if (matchesKey(data, "shift+t")) {
+			this.thinkingLevel = nextThinkingLevel(this.thinkingLevel);
+			this.onThinkingChange(this.thinkingLevel);
+			this.invalidate();
+			this.tui.requestRender();
 		} else if (matchesKey(data, "ctrl+c") || matchesKey(data, "escape")) {
 			this.done({ type: "exit" });
 		}
@@ -196,7 +230,10 @@ class DriveComponent {
 		const lines: string[] = [];
 
 		lines.push("");
-		lines.push(th.fg("accent", th.bold("  drive")));
+		const thinkingLabel = this.thinkingLevel === "off"
+			? ""
+			: `  ${th.fg("muted", "thinking:")} ${th.fg("accent", this.thinkingLevel)}`;
+		lines.push(th.fg("accent", th.bold("  drive")) + thinkingLabel);
 		lines.push(th.fg("borderMuted", "  " + "─".repeat(Math.max(0, width - 4))));
 
 		// Action summary from last round
@@ -235,9 +272,16 @@ class DriveComponent {
 			lines.push(truncateToWidth(th.fg("dim", "  enter  send    esc  cancel"), width));
 		} else {
 			lines.push(truncateToWidth(
-				th.fg("dim", "  j/k  navigate    enter  select    t  type    r  reroll    R  reroll all    esc  exit"),
+				th.fg("dim", "  j/k  navigate    enter  select    f  follow    t  type    r  reroll    R  reroll all    T  thinking    esc  exit"),
 				width,
 			));
+		}
+
+		// Pad to fill terminal so no previous content is visible
+		const termRows = process.stdout.rows || 40;
+		const targetLines = Math.max(lines.length, termRows - 2);
+		while (lines.length < targetLines) {
+			lines.push("");
 		}
 
 		this.cachedLines = lines;
@@ -256,6 +300,7 @@ class DriveComponent {
 export default function (pi: ExtensionAPI) {
 	let driveActive = false;
 	let actionLog: ActionEntry[] = [];
+	let savedThinkingLevel: string | undefined;
 
 	// Register --drive flag for auto-start
 	pi.registerFlag("drive", {
@@ -322,11 +367,12 @@ export default function (pi: ExtensionAPI) {
 			},
 			// Silent when drive mode is active, otherwise show name only
 			renderCall(args, theme) {
-				if (driveActive) return EMPTY;
+				if (driveActive) return undefined;
 				return new Text(theme.fg("toolTitle", theme.bold(def.name)), 0, 0);
 			},
 			renderResult(_result, _options, _theme) {
-				return EMPTY;
+				if (driveActive) return undefined;
+				return undefined;
 			},
 		});
 	}
@@ -373,9 +419,18 @@ export default function (pi: ExtensionAPI) {
 	pi.on("session_start", async (_event, ctx) => {
 		if (!pi.getFlag("--drive") || !ctx.hasUI) return;
 		driveActive = true;
+		savedThinkingLevel = pi.getThinkingLevel();
+		pi.setThinkingLevel("off");
+		clearScreen();
+		ctx.ui.setWorkingMessage(" ");
 		const context = await gatherContext(ctx.cwd);
-		pi.sendUserMessage(
-			`Drive mode active. Current context:\n\n${context}\n\nCall present_options now with 10 suggestions for things I might want to do.`,
+		pi.sendMessage(
+			{
+				customType: "drive-prompt",
+				content: `Drive mode active. Current context:\n\n${context}\n\nCall present_options now with 10 suggestions for things I might want to do.`,
+				display: false,
+			},
+			{ triggerTurn: true },
 		);
 	});
 
@@ -413,13 +468,29 @@ export default function (pi: ExtensionAPI) {
 			const actions = [...actionLog];
 			actionLog = [];
 
+			// Clear screen so only the drive UI is visible
+			clearScreen();
+
 			const result = await ctx.ui.custom<DriveResult>(
 				(tui, theme, _kb, done) =>
-					new DriveComponent(params.options, actions, tui, theme, done),
+					new DriveComponent(
+						params.options,
+						actions,
+						tui,
+						theme,
+						pi.getThinkingLevel(),
+						(level) => pi.setThinkingLevel(level as any),
+						done,
+					),
 			);
 
 			if (result.type === "exit") {
 				driveActive = false;
+				if (savedThinkingLevel) {
+					pi.setThinkingLevel(savedThinkingLevel as any);
+					savedThinkingLevel = undefined;
+				}
+				ctx.ui.setWorkingMessage();
 				return {
 					content: [{ type: "text", text: "User exited drive mode. Resume normal conversation." }],
 					details: {},
@@ -429,7 +500,10 @@ export default function (pi: ExtensionAPI) {
 			let responseText: string;
 			switch (result.type) {
 				case "select":
-					responseText = `User selected: ${result.text}`;
+					responseText = `User selected: ${result.text}\n\nExecute this fully and autonomously. Make all sub-decisions yourself. Call present_options when done.`;
+					break;
+				case "follow":
+					responseText = `User selected (FOLLOW MODE): ${result.text}\n\nThe user wants to follow along step by step. Do ONE small step, then call present_options with next-step choices for this task.`;
 					break;
 				case "typed":
 					responseText = `User typed: ${result.text}`;
@@ -449,8 +523,8 @@ export default function (pi: ExtensionAPI) {
 		},
 
 		// present_options itself is also silent
-		renderCall: () => EMPTY,
-		renderResult: () => EMPTY,
+		renderCall: () => undefined,
+		renderResult: () => undefined,
 	});
 
 	// ── /drive command ───────────────────────────────────────────────────
@@ -465,10 +539,19 @@ export default function (pi: ExtensionAPI) {
 
 			driveActive = true;
 			actionLog = [];
+			savedThinkingLevel = pi.getThinkingLevel();
+			pi.setThinkingLevel("off");
+			clearScreen();
+			ctx.ui.setWorkingMessage(" ");
 			const context = await gatherContext(ctx.cwd);
 
-			pi.sendUserMessage(
-				`Drive mode active. Current context:\n\n${context}\n\nCall present_options now with 10 suggestions for things I might want to do.`,
+			pi.sendMessage(
+				{
+					customType: "drive-prompt",
+					content: `Drive mode active. Current context:\n\n${context}\n\nCall present_options now with 10 suggestions for things I might want to do.`,
+					display: false,
+				},
+				{ triggerTurn: true },
 			);
 		},
 	});
