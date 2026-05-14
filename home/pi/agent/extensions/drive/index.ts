@@ -23,7 +23,8 @@ type DriveResult =
 	| { type: "select"; text: string }
 	| { type: "typed"; text: string }
 	| { type: "reroll-one"; index: number; text: string }
-	| { type: "reroll-all" };
+	| { type: "reroll-all" }
+	| { type: "exit" };
 
 type UIState = "selecting" | "typing";
 
@@ -125,6 +126,8 @@ class DriveComponent {
 			});
 		} else if (matchesKey(data, "shift+r")) {
 			this.done({ type: "reroll-all" });
+		} else if (matchesKey(data, "ctrl+c")) {
+			this.done({ type: "exit" });
 		}
 	}
 
@@ -188,7 +191,7 @@ class DriveComponent {
 			lines.push(truncateToWidth(th.fg("dim", "  enter  send    esc  cancel"), width));
 		} else {
 			lines.push(truncateToWidth(
-				th.fg("dim", "  j/k  navigate    enter  select    t  type    r  reroll    R  reroll all"),
+				th.fg("dim", "  j/k  navigate    enter  select    t  type    r  reroll    R  reroll all    ctrl+c  exit"),
 				width,
 			));
 		}
@@ -242,6 +245,14 @@ export default function (pi: ExtensionAPI) {
 			const result = await ctx.ui.custom<DriveResult>(
 				(tui, theme, _kb, done) => new DriveComponent(params.options, tui, theme, done),
 			);
+
+			if (result.type === "exit") {
+				driveActive = false;
+				return {
+					content: [{ type: "text", text: "User exited drive mode. Resume normal conversation." }],
+					details: {},
+				};
+			}
 
 			let responseText: string;
 			switch (result.type) {
