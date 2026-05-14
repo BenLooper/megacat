@@ -126,7 +126,7 @@ class DriveComponent {
 			});
 		} else if (matchesKey(data, "shift+r")) {
 			this.done({ type: "reroll-all" });
-		} else if (matchesKey(data, "ctrl+c")) {
+		} else if (matchesKey(data, "ctrl+c") || matchesKey(data, "escape")) {
 			this.done({ type: "exit" });
 		}
 	}
@@ -191,7 +191,7 @@ class DriveComponent {
 			lines.push(truncateToWidth(th.fg("dim", "  enter  send    esc  cancel"), width));
 		} else {
 			lines.push(truncateToWidth(
-				th.fg("dim", "  j/k  navigate    enter  select    t  type    r  reroll    R  reroll all    ctrl+c  exit"),
+				th.fg("dim", "  j/k  navigate    enter  select    t  type    r  reroll    R  reroll all    esc  exit"),
 				width,
 			));
 		}
