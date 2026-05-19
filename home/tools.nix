@@ -38,7 +38,7 @@
 
     # ---- GIT & DOCKER UI -----------------------------------
     gh           # GitHub CLI — interact with PRs, issues, repos from the terminal
-    lazygit      # Terminal UI for git — stage, commit, diff, branch all from one screen
+    lazygit      # Terminal UI for git — stage, commit, diff, branch all from one screen (config below)
     lazydocker   # Terminal UI for Docker — manage containers, images, logs interactively
     devcontainer # Dev Containers CLI — create and manage dev container environments
     lazysql
@@ -78,6 +78,16 @@
       theme = "Catppuccin-mocha";  # Matches the Ghostty theme
       # Show line numbers, git change markers, and a filename header
       style = "numbers,changes,header";
+    };
+  };
+
+  # ============================================================
+  # LAZYGIT — terminal UI for git
+  # ============================================================
+  programs.lazygit = {
+    enable = true;
+    settings = {
+      gui.screenMode = "full";
     };
   };
 
