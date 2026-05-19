@@ -46,6 +46,11 @@
     # ---- LANGUAGES -----------------------------------------
     go        # Go toolchain: compiler, `go` CLI, gofmt, etc.
     bun       # Bun: fast JavaScript runtime, bundler, and package manager
+    rustc     # Rust compiler
+    cargo     # Rust package manager and build tool
+    rustfmt   # Rust code formatter
+    clippy    # Rust linter
+    gcc       # C compiler (needed as linker for Rust crates with build scripts)
 
     # ---- MISC UTILITIES ------------------------------------
     gnumake   # `make`: run Makefiles

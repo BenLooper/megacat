@@ -73,6 +73,7 @@
   home.sessionPath = [
     "$HOME/.bun/bin"
     "$HOME/go/bin"
+    "$HOME/.cargo/bin"
   ];
 
   # Let home-manager manage itself. This installs the `home-manager`
