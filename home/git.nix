@@ -49,6 +49,9 @@
       # (fewer spurious changes shown when you move code around).
       diff.algorithm = "histogram";
 
+      # Use gh as credential helper so stored tokens are used for HTTPS remotes
+      credential.helper = "!gh auth git-credential";
+
       # Show untracked files individually, not collapsed as a directory name.
       status.showUntrackedFiles = "all";
     };
