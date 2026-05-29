@@ -93,10 +93,7 @@
       # Useful when you have multiple tabs open.
       precmd() { print -Pn "\e]0;%~\a" }
 
-      # Launch sigye screensaver on terminal open (press q to dismiss)
-      if [[ $- == *i* ]]; then
-        sigye --screensaver --font Terrace --theme Frost --bg Gradient
-      fi
+      
     '';
   };
 

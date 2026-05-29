@@ -39,24 +39,7 @@
     "root": {
       "inputs": {
         "home-manager": "home-manager",
-        "nixpkgs": "nixpkgs",
-        "sigye": "sigye"
-      }
-    },
-    "sigye": {
-      "flake": false,
-      "locked": {
-        "lastModified": 1776653836,
-        "narHash": "sha256-t7bapex4R8ETWiPQ/VXnbXij53WNckTj/gJlG4XXiuM=",
-        "owner": "am2rican5",
-        "repo": "sigye",
-        "rev": "c63c8a0b4db12cb17b05753a329fe3fa0ca22d34",
-        "type": "github"
-      },
-      "original": {
-        "owner": "am2rican5",
-        "repo": "sigye",
-        "type": "github"
+        "nixpkgs": "nixpkgs"
       }
     }
   },

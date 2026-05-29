@@ -18,7 +18,7 @@
     ./tools.nix     # CLI tools: ripgrep, bat, eza, direnv, etc.
     ./tmux.nix      # Tmux: terminal multiplexer (multiple windows in one terminal)
     ./starship.nix  # Starship: prompt (directory, git, exit status, duration)
-    ./sigye.nix     # Sigye: ASCII art terminal clock (screensaver on startup)
+    
   ];
 
   # ============================================================

@@ -25,12 +25,7 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
-    # sigye: a beautiful terminal clock with ASCII art fonts (not a flake)
-    sigye = {
-      url = "github:am2rican5/sigye";
-      flake = false;
     };
-  };
 
   # ============================================================
   # OUTPUTS
@@ -39,23 +34,13 @@
   # us access to everything declared above (nixpkgs, home-manager).
   #
   # The `...` catches any other inputs Nix passes automatically (like `self`).
-  outputs = { nixpkgs, home-manager, sigye, ... }:
+  outputs = { nixpkgs, home-manager, ... }:
     let
       system = "x86_64-linux";
 
       pkgs = import nixpkgs {
         inherit system;
         config.allowUnfree = true;
-      };
-
-      # Build sigye from source (Rust crate, not a flake)
-      sigye-pkg = pkgs.rustPlatform.buildRustPackage rec {
-        pname = "sigye";
-        version = "0.4.3";
-
-        src = sigye;
-
-        cargoHash = "sha256-4iuwFcVnUWDfHimGVxH/bU4ae37oKqnyFp3gLns+VlE=";
       };
     in
     {
@@ -76,8 +61,6 @@
       homeConfigurations."personal" = home-manager.lib.homeManagerConfiguration {
         inherit pkgs;
 
-        extraSpecialArgs = { inherit sigye-pkg; };
-
         # Our actual configuration lives in home/default.nix, which imports
         # all the individual module files.
         modules = [ ./home/default.nix ./home/profiles/personal.nix ];
@@ -86,15 +69,11 @@
       homeConfigurations."work" = home-manager.lib.homeManagerConfiguration {
         inherit pkgs;
 
-        extraSpecialArgs = { inherit sigye-pkg; };
-
         modules = [ ./home/default.nix ./home/profiles/work.nix ];
       };
 
       homeConfigurations."ghostty-dev" = home-manager.lib.homeManagerConfiguration {
         inherit pkgs;
-
-        extraSpecialArgs = { inherit sigye-pkg; };
 
         modules = [ ./home/default.nix ./home/profiles/ghostty-dev.nix ];
       };
