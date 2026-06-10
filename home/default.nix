@@ -61,6 +61,9 @@
     EDITOR = "nvim";    # Default editor for git commit messages, etc.
     VISUAL = "nvim";    # Used by some programs to open a "visual" editor
     PAGER  = "less";    # Program used to page through long output
+    SSL_CERT_FILE = "${pkgs.cacert}/etc/ssl/certs/ca-bundle.crt";
+    NIX_SSL_CERT_FILE = "${pkgs.cacert}/etc/ssl/certs/ca-bundle.crt";
+    SSL_CERT_DIR = "/etc/ssl/certs";
   };
 
   # ============================================================
