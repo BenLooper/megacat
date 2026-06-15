@@ -157,6 +157,11 @@ in {
     # (linux-continue-if-no-devs-found), then grabs it automatically.
     # Logs: journalctl --user -u kanata -f
     # Restart: systemctl --user restart kanata
+    programs.zsh.shellAliases = {
+      setup-macropad = "bash ~/dotfiles/scripts/setup-macropad.sh";
+      kanata-logs = "journalctl --user -u kanata -f";
+    };
+
     systemd.user.services.kanata = {
       Unit = {
         Description = "Kanata key remapper for EPOMAKER EK21";

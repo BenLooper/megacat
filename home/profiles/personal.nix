@@ -15,11 +15,6 @@
   ];
 
   programs.zsh.shellAliases = {
-    # Apply your dotfiles changes and reload the environment.
-    # Points to the personal profile so it re-applies the right config.
     dots = "home-manager switch --flake ~/dotfiles#personal --impure";
-    setup-macropad = "bash ~/dotfiles/scripts/setup-macropad.sh";
-    # Tail the kanata daemon log (it runs as a systemd user service).
-    kanata-logs = "journalctl --user -u kanata -f";
   };
 }

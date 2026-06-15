@@ -88,10 +88,10 @@
   ;; Hold kp+ to activate split layer. Tap passes kp+ through.
   spl   (tap-hold 200 200 kp+ (layer-while-held split))
   ;; tap-dance: single tap → navigate, double tap → split
-  mr    (tap-dance 200 (@nr @sr))
-  ml    (tap-dance 200 (@nl @sl))
-  md    (tap-dance 200 (@nd @sd))
-  mu    (tap-dance 200 (@nu @su))
+  mr    (tap-dance 180 (@nr @sr))
+  ml    (tap-dance 180 (@nl @sl))
+  md    (tap-dance 180 (@nd @sd))
+  mu    (tap-dance 180 (@nu @su))
 )
 
 (deflayer default
