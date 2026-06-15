@@ -2,9 +2,8 @@
 ;; ============================================================
 ;; Architecture: pad → usbipd → kanata (cmd actions) → tmux
 ;;
-;; The pad doesn't remap keys for typing — it dispatches actions.
-;; Each key triggers a shell command via kanata's cmd feature,
-;; targeting tmux panes (where the shell actually lives in WSL).
+;; The pad dispatches actions via kanata's cmd feature, targeting
+;; tmux panes (where the shell actually lives in WSL).
 ;;
 ;; Physical layout (approximate — adjust to match your board):
 ;;
@@ -15,11 +14,21 @@
 ;;   kp0                kp.
 ;;
 ;; Default layer:
-;;   kp1  → launch opencode (oc) in the main tmux session
-;;   kp2  → Ctrl-C in the active pane (kill what's running)
-;;   kp3  → Ctrl-L in the active pane (clear screen)
-;;   kp0  → new tmux window
-;;   All other keys pass through as numpad keys.
+;;   tab  bspc  nlck  kp/  kp*  kp-    (pass through)
+;;   kp7   kp8   kp9   kp+             (pass through)
+;;   kp4   kp5   kp6                   (pass through)
+;;   kp1   kp2   kp3  kprt             (oc, ctrl-c, ctrl-l, tap→new window, hold→window switch)
+;;   kp0                kp.             (pass through)
+;;
+;; Window-switch layer (hold kprt):
+;;   kpN → window N (kp1–kp9 map to windows 1–9)
+;;   kp0 kills the current window
+;;
+;; Split layer (hold kp+):
+;;   single tap direction → navigate pane
+;;   double tap direction → split pane in that direction
+;;   kp0 → close current pane
+;;   kp6→right  kp4→left  kp8→up  kp2→down
 ;;
 ;; The shell auto-starts tmux when kanata is enabled (see shell.nix),
 ;; so the "main" tmux session always exists as a cmd target.
@@ -42,20 +51,69 @@
 )
 
 (defalias
-  ;; Launch opencode in the current pane of the main tmux session
-  oc  (cmd "tmux" "send-keys" "-t" "main" "oc" "Enter")
-  ;; Send Ctrl-C to the current pane (kill what's running)
-  cc  (cmd "tmux" "send-keys" "-t" "main" "C-c")
-  ;; Send Ctrl-L to the current pane (clear screen)
-  cl  (cmd "tmux" "send-keys" "-t" "main" "C-l")
-  ;; Create a new tmux window
-  nw  (cmd "tmux" "new-window" "-t" "main")
+  ;; Default layer actions
+  oc    (cmd "tmux" "send-keys" "-t" "main" "oc" "Enter")
+  cc    (cmd "tmux" "send-keys" "-t" "main" "C-c")
+  cl    (cmd "tmux" "send-keys" "-t" "main" "C-l")
+  nw    (cmd "tmux" "new-window" "-t" "main")
+  ;; Hold kprt to activate window-switch layer.
+  ;; Tap kprt within 200ms to create a new window.
+  win   (tap-hold 200 200 @nw (layer-while-held window-switch))
+
+  ;; Window-switch layer: kpN → window N
+  w1    (cmd "tmux" "select-window" "-t" "main:1")
+  w2    (cmd "tmux" "select-window" "-t" "main:2")
+  w3    (cmd "tmux" "select-window" "-t" "main:3")
+  w4    (cmd "tmux" "select-window" "-t" "main:4")
+  w5    (cmd "tmux" "select-window" "-t" "main:5")
+  w6    (cmd "tmux" "select-window" "-t" "main:6")
+  w7    (cmd "tmux" "select-window" "-t" "main:7")
+  w8    (cmd "tmux" "select-window" "-t" "main:8")
+  w9    (cmd "tmux" "select-window" "-t" "main:9")
+  ;; Close the current window
+  kw    (cmd "tmux" "kill-window")
+
+  ;; Pane navigation (hold kp+ + single tap direction)
+  nr    (cmd "tmux" "select-pane" "-R")
+  nl    (cmd "tmux" "select-pane" "-L")
+  nd    (cmd "tmux" "select-pane" "-D")
+  nu    (cmd "tmux" "select-pane" "-U")
+  ;; Pane splitting (hold kp+ + double tap direction)
+  sr    (cmd "tmux" "split-window" "-h" "-t" "main")
+  sl    (cmd "tmux" "split-window" "-h" "-b" "-t" "main")
+  sd    (cmd "tmux" "split-window" "-v" "-t" "main")
+  su    (cmd "tmux" "split-window" "-v" "-b" "-t" "main")
+  ;; Kill current pane
+  kp    (cmd "tmux" "kill-pane")
+  ;; Hold kp+ to activate split layer. Tap passes kp+ through.
+  spl   (tap-hold 200 200 kp+ (layer-while-held split))
+  ;; tap-dance: single tap → navigate, double tap → split
+  mr    (tap-dance 200 (@nr @sr))
+  ml    (tap-dance 200 (@nl @sl))
+  md    (tap-dance 200 (@nd @sd))
+  mu    (tap-dance 200 (@nu @su))
 )
 
 (deflayer default
   tab   bspc  nlck  kp/  kp*  kp-
-  kp7   kp8   kp9   kp+
+  kp7   kp8   kp9   @spl
   kp4   kp5   kp6
-  @oc   @cc   @cl   kprt
-  @nw                kp.
+  @oc   @cc   @cl   @win
+  kp0                kp.
+)
+
+(deflayer window-switch
+  tab   bspc  nlck  kp/  kp*  kp-
+  @w7   @w8   @w9   kp+
+  @w4   @w5   @w6
+  @w1   @w2   @w3   _
+  @kw                kp.
+)
+
+(deflayer split
+  tab   bspc  nlck  kp/  kp*  kp-
+  kp7   @mu   kp9   _
+  @ml   kp5   @mr
+  kp1   @md   kp3   _
+  @kp                kp.
 )
