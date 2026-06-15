@@ -18,7 +18,8 @@
     ./tools.nix     # CLI tools: ripgrep, bat, eza, direnv, etc.
     ./tmux.nix      # Tmux: terminal multiplexer (multiple windows in one terminal)
     ./starship.nix  # Starship: prompt (directory, git, exit status, duration)
-    
+    ./kanata.nix    # Kanata: key remapper for EPOMAKER EK21 macropad
+
   ];
 
   # ============================================================

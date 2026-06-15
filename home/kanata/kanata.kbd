@@ -1,0 +1,61 @@
+;; kanata config for EPOMAKER EK21
+;; ============================================================
+;; Architecture: pad → usbipd → kanata (cmd actions) → tmux
+;;
+;; The pad doesn't remap keys for typing — it dispatches actions.
+;; Each key triggers a shell command via kanata's cmd feature,
+;; targeting tmux panes (where the shell actually lives in WSL).
+;;
+;; Physical layout (approximate — adjust to match your board):
+;;
+;;   tab   bspc  nlck  kp/  kp*  kp-
+;;   kp7   kp8   kp9   kp+
+;;   kp4   kp5   kp6
+;;   kp1   kp2   kp3   kprt
+;;   kp0                kp.
+;;
+;; Default layer:
+;;   kp1  → launch opencode (oc) in the main tmux session
+;;   kp2  → Ctrl-C in the active pane (kill what's running)
+;;   kp3  → Ctrl-L in the active pane (clear screen)
+;;   kp0  → new tmux window
+;;   All other keys pass through as numpad keys.
+;;
+;; The shell auto-starts tmux when kanata is enabled (see shell.nix),
+;; so the "main" tmux session always exists as a cmd target.
+;; ============================================================
+
+(defcfg
+  linux-dev @DEVICE_PATH@
+  danger-enable-cmd yes
+  linux-continue-if-no-devs-found yes
+  process-unmapped-keys yes
+  log-layer-changes yes
+)
+
+(defsrc
+  tab   bspc  nlck  kp/  kp*  kp-
+  kp7   kp8   kp9   kp+
+  kp4   kp5   kp6
+  kp1   kp2   kp3   kprt
+  kp0                kp.
+)
+
+(defalias
+  ;; Launch opencode in the current pane of the main tmux session
+  oc  (cmd "tmux" "send-keys" "-t" "main" "oc" "Enter")
+  ;; Send Ctrl-C to the current pane (kill what's running)
+  cc  (cmd "tmux" "send-keys" "-t" "main" "C-c")
+  ;; Send Ctrl-L to the current pane (clear screen)
+  cl  (cmd "tmux" "send-keys" "-t" "main" "C-l")
+  ;; Create a new tmux window
+  nw  (cmd "tmux" "new-window" "-t" "main")
+)
+
+(deflayer default
+  tab   bspc  nlck  kp/  kp*  kp-
+  kp7   kp8   kp9   kp+
+  kp4   kp5   kp6
+  @oc   @cc   @cl   kprt
+  @nw                kp.
+)

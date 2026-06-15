@@ -93,7 +93,33 @@
       # Useful when you have multiple tabs open.
       precmd() { print -Pn "\e]0;%~\a" }
 
-      
+      # Kanata macropad: check and fix issues at shell startup.
+      # Only runs if kanata is enabled in the home-manager profile.
+      # Silence means everything is working.
+      # - /dev/uinput not writable → warn about setup-macropad
+      # - Device not attached → auto-attach (WSL) or warn about USB (Linux)
+      if [[ -n "$KANATA_ENABLED" ]]; then
+        if [[ ! -w /dev/uinput ]]; then
+          print -P '%F{yellow}⚠ kanata: no /dev/uinput access. Run: setup-macropad%f'
+        elif [[ -n "$KANATA_DEVICE_PATH" ]] && [[ ! -e "$KANATA_DEVICE_PATH" ]]; then
+          if [[ -n "$WSL_DISTRO_NAME" ]] && command -v attach-macropad &>/dev/null; then
+            msg="$(attach-macropad 2>&1)" || print -P "%F{yellow}⚠ kanata: $msg%f"
+          elif [[ -n "$WSL_DISTRO_NAME" ]]; then
+            print -P '%F{yellow}⚠ kanata: pad not attached. Run: attach-macropad%f'
+          else
+            print -P '%F{yellow}⚠ kanata: pad not connected. Check USB cable.%f'
+          fi
+        fi
+      fi
+
+      # Auto-start tmux when kanata is enabled.
+      # The macropad targets tmux panes via cmd actions, so tmux must be
+      # running for pad keys to work. This creates/attaches to a session
+      # named "main" on every new terminal window.
+      # Skips if already inside tmux or in an SSH session.
+      if [[ -n "$KANATA_ENABLED" ]] && [[ -z "$TMUX" ]] && [[ -z "$SSH_TTY" ]]; then
+        exec tmux new-session -A -s main
+      fi
     '';
   };
 
