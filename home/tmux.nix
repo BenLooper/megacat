@@ -21,13 +21,21 @@
 # - Pane: A window split into multiple terminals.
 #
 # CHEAT SHEET (with our Ctrl+A prefix)
-#   Ctrl+A  |     Split pane vertically (left/right)
-#   Ctrl+A  -     Split pane horizontally (top/bottom)
-#   Ctrl+A  h/j/k/l  Move between panes (vim-style)
-#   Ctrl+A  c     New window
-#   Ctrl+A  n/p   Next/previous window
-#   Ctrl+A  d     Detach session (leaves it running)
-#   Ctrl+A  r     Reload this config
+#   Ctrl+A  |         Split pane vertically (left/right)
+#   Ctrl+A  -         Split pane horizontally (top/bottom)
+#   Ctrl+A  h/j/k/l   Move between panes (vim-style)
+#   Ctrl+A  H/J/K/L   Swap pane with neighbour
+#   Ctrl+A  arrows    Resize pane (5 cells, repeatable)
+#   Ctrl+A  x         Kill pane
+#   Ctrl+A  X         Kill window
+#   Ctrl+A  c         New window
+#   Ctrl+A  n         Next window
+#   Ctrl+A  p         Paste from Windows clipboard
+#   Ctrl+A  d         Detach session (leaves it running)
+#   Ctrl+A  r         Reload this config
+#
+#   Copy mode: Ctrl+A [  then v to select, y to yank (copies to Windows too)
+#   Mouse drag-select also copies to Windows clipboard.
 # ============================================================
 { pkgs, ... }: {
 
@@ -50,8 +58,10 @@
     # Automatically resize windows to fit the smallest attached client.
     aggressiveResize = true;
 
-    # How long status messages stay visible (milliseconds).
-    escapeTime = 2000;
+    # How long tmux waits for a prefix combo (milliseconds).
+    # 10ms is instant-feeling for keyboard use; the macropad uses
+    # cmd actions that bypass the prefix key entirely, so it's unaffected.
+    escapeTime = 10;
 
     # ============================================================
     # PLUGINS
@@ -88,6 +98,27 @@
       bind k select-pane -U
       bind l select-pane -R
 
+      # ---- PANE SWAPPING ------------------------------------
+      # Swap the current pane with a neighbour (capital = "bigger" action).
+      # tmux only supports -U (swap up) and -D (swap down) natively;
+      # swapping left/right is achieved by swapping in the opposite vertical direction
+      # of the neighbour in that direction.
+      bind H swap-pane -U
+      bind L swap-pane -D
+      bind J swap-pane -D
+      bind K swap-pane -U
+
+      # ---- PANE RESIZING ------------------------------------
+      # Resize panes with arrow keys. 5 cells per press, repeatable (-r).
+      bind -r Up    resize-pane -U 5
+      bind -r Down  resize-pane -D 5
+      bind -r Left  resize-pane -L 5
+      bind -r Right resize-pane -R 5
+
+      # ---- KILL PANE / WINDOW --------------------------------
+      bind x kill-pane
+      bind X kill-window
+
       # ---- RELOAD CONFIG ------------------------------------
       # Prefix + r reloads this config file without restarting tmux.
       bind r source-file ~/.config/tmux/tmux.conf \; display "Config reloaded!"
@@ -95,6 +126,21 @@
       # ---- MOUSE SUPPORT ------------------------------------
       # Click to select panes and windows, scroll with the mouse wheel.
       set -g mouse on
+
+      # ---- COPY MODE (vi keys) ------------------------------
+      setw -g mode-keys vi
+      # v starts a visual selection (like vim visual mode).
+      bind -T copy-mode-vi v send-keys -X begin-selection
+      # y yanks the selection — to both tmux buffer and Windows clipboard.
+      bind -T copy-mode-vi y send-keys -X copy-selection-and-cancel \; run -d 0.1 "tmux save-buffer - | clip.exe"
+
+      # ---- MOUSE DRAG → CLIPBOARD ----------------------------
+      # Drag-selecting with the mouse copies to Windows clipboard too.
+      bind -T copy-mode-vi MouseDragEnd1Pane send-keys -X copy-selection-and-cancel \; run -d 0.1 "tmux save-buffer - | clip.exe"
+
+      # ---- PASTE FROM WINDOWS CLIPBOARD ---------------------
+      # Prefix + p pastes the Windows clipboard content into the current pane.
+      bind p run "powershell.exe -NoProfile -Command 'Get-Clipboard' 2>/dev/null | tmux load-buffer - && tmux paste-buffer"
 
       # ---- SCROLLBACK BUFFER --------------------------------
       set -g history-limit 10000
