@@ -107,7 +107,7 @@
           elif [[ -n "$WSL_DISTRO_NAME" ]]; then
             print -P '%F{yellow}⚠ kanata: pad not attached. Run: attach-macropad%f'
           else
-            print -P '%F{yellow}⚠ kanata: pad not connected. Check USB cable.%f'
+            print -P '%F{yellow}⚠ kanata: pad not connected. Plug in via USB or dongle.%f'
           fi
         fi
       fi

@@ -12,9 +12,9 @@
 #
 # Enable per-profile with: mycfg.kanata.enable = true;
 #
-# Device identifiers (VID:PID and by-id path) are centralized here
-# as options — change them once and all scripts, configs, and shell
-# checks update automatically.
+# Device identifiers (VID:PID wired/dongle and udev symlink path)
+# are centralized here as options — change them once and all scripts,
+# configs, and shell checks update automatically.
 #
 # PERMISSIONS (one-time per machine, requires sudo):
 #   setup-macropad
@@ -38,14 +38,20 @@ in {
 
     devicePath = lib.mkOption {
       type = lib.types.str;
-      default = "/dev/input/by-id/usb-RDMCTMZT_EPOMAKER_EK21_20250901-event-kbd";
-      description = "Path to the macropad's main keyboard event device.";
+      default = "/dev/input/macropad";
+      description = "Path to the macropad event device (udev symlink, stable across wired/dongle).";
     };
 
     deviceVidPid = lib.mkOption {
       type = lib.types.str;
       default = "36b0:3066";
-      description = "VID:PID of the macropad, used by usbipd to find the device.";
+      description = "VID:PID of the macropad (wired USB), used by usbipd to find the device.";
+    };
+
+    deviceVidPidAlt = lib.mkOption {
+      type = lib.types.str;
+      default = "36b0:3002";
+      description = "VID:PID of the macropad (2.4GHz dongle), used by usbipd as fallback.";
     };
   };
 
@@ -55,11 +61,12 @@ in {
       (pkgs.writeShellScriptBin "attach-macropad" ''
         # attach-macropad — attach EPOMAKER EK21 to WSL via usbipd
         # Generated from home/kanata.nix — device identifiers come from
-        # mycfg.kanata.devicePath/deviceVidPid. Do not edit directly.
+        # mycfg.kanata.devicePath/deviceVidPid/deviceVidPidAlt. Do not edit directly.
 
         set -euo pipefail
 
         VIDPID="${cfg.deviceVidPid}"
+        VIDPID_ALT="${cfg.deviceVidPidAlt}"
         DEVICE_PATH="${cfg.devicePath}"
 
         # If the device already exists, nothing to do.
@@ -80,9 +87,9 @@ in {
           exit 1
         fi
 
-        # Find the device in usbipd's list.
+        # Find the device in usbipd's list (wired or dongle).
         # Output format: "1-4    36b0:3066  USB Input Device    Not shared"
-        MAPLINE="$(usbipd.exe list 2>/dev/null | grep "$VIDPID" || true)"
+        MAPLINE="$(usbipd.exe list 2>/dev/null | grep -E "$VIDPID|$VIDPID_ALT" || true)"
 
         if [[ -z "$MAPLINE" ]]; then
           echo "⚠ Macropad not detected on Windows USB. Is it plugged in?" >&2

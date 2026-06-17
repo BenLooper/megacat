@@ -16,6 +16,7 @@
 set -euo pipefail
 
 VIDPID="@DEVICE_VIDPID@"
+VIDPID_ALT="@DEVICE_VIDPID_ALT@"
 DEVICE_PATH="@DEVICE_PATH@"
 
 # If the device already exists, nothing to do.
@@ -38,7 +39,7 @@ fi
 
 # Find the device in usbipd's list.
 # Output format: "1-4    36b0:3066  USB Input Device    Not shared"
-MAPLINE="$(usbipd.exe list 2>/dev/null | grep "$VIDPID" || true)"
+MAPLINE="$(usbipd.exe list 2>/dev/null | grep -E "$VIDPID|$VIDPID_ALT" || true)"
 
 if [[ -z "$MAPLINE" ]]; then
   echo "⚠ Macropad not detected on Windows USB. Is it plugged in?" >&2

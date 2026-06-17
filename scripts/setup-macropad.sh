@@ -37,8 +37,16 @@ sudo usermod -aG uinput "$(whoami)"
 echo "Creating udev rule for /dev/uinput..."
 sudo bash -c 'echo "KERNEL==\"uinput\", GROUP=\"uinput\", MODE=\"0660\"" > /etc/udev/rules.d/90-uinput.rules'
 
+echo "Creating udev rule for macropad symlink..."
+sudo bash -c 'cat > /etc/udev/rules.d/91-macropad.rules << '"'"'UDEV'"'"'
+# Wired EPOMAKER EK21 (36b0:3066) — primary keyboard interface
+SUBSYSTEM=="input", ENV{ID_VENDOR_ID}=="36b0", ENV{ID_MODEL_ID}=="3066", ENV{ID_USB_INTERFACE_NUM}=="00", SYMLINK+="input/macropad"
+# 2.4GHz dongle (36b0:3002) — primary keyboard interface
+SUBSYSTEM=="input", ENV{ID_VENDOR_ID}=="36b0", ENV{ID_MODEL_ID}=="3002", ENV{ID_USB_INTERFACE_NUM}=="00", SYMLINK+="input/macropad"
+UDEV'
+
 echo "Reloading udev rules..."
-sudo udevadm control --reload-rules
+sudo udevadm control --reload
 
 echo "Applying permissions to /dev/uinput for current session..."
 sudo chgrp uinput /dev/uinput
