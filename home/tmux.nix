@@ -132,11 +132,11 @@
       # v starts a visual selection (like vim visual mode).
       bind -T copy-mode-vi v send-keys -X begin-selection
       # y yanks the selection — to both tmux buffer and Windows clipboard.
-      bind -T copy-mode-vi y send-keys -X copy-selection-and-cancel \; run -d 0.1 "tmux save-buffer - | clip.exe"
+      bind -T copy-mode-vi y send-keys -X copy-pipe-and-cancel "clip.exe"
 
       # ---- MOUSE DRAG → CLIPBOARD ----------------------------
       # Drag-selecting with the mouse copies to Windows clipboard too.
-      bind -T copy-mode-vi MouseDragEnd1Pane send-keys -X copy-selection-and-cancel \; run -d 0.1 "tmux save-buffer - | clip.exe"
+      bind -T copy-mode-vi MouseDragEnd1Pane send-keys -X copy-pipe-and-cancel "clip.exe"
 
       # ---- PASTE FROM WINDOWS CLIPBOARD ---------------------
       # Prefix + p pastes the Windows clipboard content into the current pane.
