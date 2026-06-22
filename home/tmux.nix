@@ -132,15 +132,16 @@
       # v starts a visual selection (like vim visual mode).
       bind -T copy-mode-vi v send-keys -X begin-selection
       # y yanks the selection — to both tmux buffer and Windows clipboard.
-      bind -T copy-mode-vi y send-keys -X copy-pipe-and-cancel "clip.exe"
+      # Full path because tmux's server env doesn't inherit WSL's Windows PATH.
+      bind -T copy-mode-vi y send-keys -X copy-pipe-and-cancel "/mnt/c/Windows/System32/clip.exe"
 
       # ---- MOUSE DRAG → CLIPBOARD ----------------------------
       # Drag-selecting with the mouse copies to Windows clipboard too.
-      bind -T copy-mode-vi MouseDragEnd1Pane send-keys -X copy-pipe-and-cancel "clip.exe"
+      bind -T copy-mode-vi MouseDragEnd1Pane send-keys -X copy-pipe-and-cancel "/mnt/c/Windows/System32/clip.exe"
 
       # ---- PASTE FROM WINDOWS CLIPBOARD ---------------------
       # Prefix + p pastes the Windows clipboard content into the current pane.
-      bind p run "powershell.exe -NoProfile -Command 'Get-Clipboard' 2>/dev/null | tmux load-buffer - && tmux paste-buffer"
+      bind p run "/mnt/c/Windows/System32/WindowsPowerShell/v1.0/powershell.exe -NoProfile -Command 'Get-Clipboard' 2>/dev/null | tmux load-buffer - && tmux paste-buffer"
 
       # ---- SCROLLBACK BUFFER --------------------------------
       set -g history-limit 10000
