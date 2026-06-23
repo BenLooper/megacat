@@ -18,10 +18,6 @@
     microsoft-edge
   ];
 
-  home.sessionPath = [
-    "$HOME/.local/bin"
-  ];
-
   home.sessionVariables = {
     NUGET_PLUGIN_PATHS = "${pkgs.azure-artifacts-credprovider}/lib/azure-artifacts-credprovider/CredentialProvider.Microsoft.dll";
     ARTIFACTS_CREDENTIALPROVIDER_FORCE_CANSHOWDIALOG_TO = "false";

@@ -73,6 +73,7 @@
   #   ~/go/bin    — binaries installed with `go install`
   #
   home.sessionPath = [
+    "$HOME/.local/bin"
     "$HOME/.bun/bin"
     "$HOME/go/bin"
     "$HOME/.cargo/bin"
