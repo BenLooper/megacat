@@ -37,11 +37,17 @@
 ;; defsrc — wire them up after identifying their HID codes with
 ;; `evtest /dev/input/macropad`, then place @sk / @sr / @stub-mine on them):
 ;;
-;;   tab   bspc  @help kp/  kp*  kp-
+;;   tab   bspc  @help kp/  kp*  lrld        ;; kp- = live-reload config
 ;;   kp7   kp8   kp9   kp+
 ;;   kp4   kp5   kp6
 ;;   kp1   kp2   kp3   kprt
 ;;   kp0                kp.
+;;
+;; ENCODER (separate /dev/input/macropad-encoder = Mouse interface, event2)
+;;   mwu mwd mmid appended below defsrc. All three are `_` (transparent) on
+;;   every layer in v1, so kanata re-emits the original wheel/click events
+;;   to /dev/uinput and the knob still scrolls your terminal / clicks middle
+;;   paste. Per-layer verbs come later as one-alias-swaps (see TODO in layers).
 ;;
 ;; RECYCLING / TODO MARKERS
 ;;   stubbed keys invoke `megacat-stub "<layer> <key>"`, which surfaces a
@@ -51,7 +57,12 @@
 ;; ============================================================
 
 (defcfg
-  linux-dev @DEVICE_PATH@
+  ;; linux-dev accepts a colon-separated list OR list syntax (used here).
+  ;; List syntax lets paths contain colons without escaping. The two entries
+  ;; are the keyboard interface (/dev/input/macropad) and the Mouse interface
+  ;; (/dev/input/macropad-encoder) — the latter exposes the rotary encoder's
+  ;; REL_WHEEL events (mwu/mwd) and BTN_MIDDLE click (mmid) to kanata.
+  linux-dev (@DEVICE_PATH@ @ENCODER_PATH@)
   danger-enable-cmd yes
   linux-continue-if-no-devs-found yes
   process-unmapped-keys yes
@@ -64,6 +75,9 @@
   kp4   kp5   kp6
   kp1   kp2   kp3   kprt
   kp0               kp.
+  ;; Rotary encoder (Mouse interface). Position doesn't matter — kanata keys
+  ;; these by name. They MUST appear in every deflayer with the same count.
+  mwu   mwd   mmid
 )
 
 (defalias
@@ -121,19 +135,23 @@
 
 ;; ============================================================
 ;; BASE layer (default) — the session map.
-;;   tab bspc nlck kp/ kp* kp-  : transparent (passthrough)
+;;   tab bspc nlck kp/ kp* kp-  : transparent (passthrough); kp- = lrld
 ;;   kp1..kp9                    : session jump (create-if-missing)
 ;;   kp0                         : fzf session picker
 ;;   kp.                         : new detached session (prompt)
 ;;   kprt                        : hold for READ layer
 ;;   kp+                         : hold for WRITE layer
+;;   encoder                     : transparent passthrough (knob still scrolls)
 ;; ============================================================
 (deflayer base
-  _     _     @help _     _     _
+  _     _     @help _     _     lrld
   @s7   @s8   @s9   @write-mod
   @s4   @s5   @s6
   @s1   @s2   @s3   @read-mod
   @sp               @sn
+  ;; encoder: transparent so knob/click pass through to the OS unchanged.
+  ;; TODO: swap `_` for @enc-up/@enc-dn/@enc-click when finalizing base verbs.
+  _     _     _
 )
 
 ;; ============================================================
@@ -146,6 +164,10 @@
 ;; Remaining digits = stubbed with a marked TODO (# EDIT).
 ;; tab/bspc/nlck stay transparent so they keep working inside the popup's
 ;; shell when the popup is up.
+;;
+;; Encoder: transparent — knob scrolls the fzf preview, click passes through.
+;; TODO: swap `_` for @enc-up/@enc-dn/@enc-click to intercept (e.g. for
+;; navigating fzf results without re-emitting to the OS).
 ;; ============================================================
 (deflayer read
   _     _     _     _     _     _
@@ -153,6 +175,7 @@
   (cmd "megacat-stub" "read kp4")  (cmd "megacat-stub" "read kp5")  (cmd "megacat-stub" "read kp6")
   (cmd "megacat-stub" "read kp1")  (cmd "megacat-stub" "read kp2")  (cmd "megacat-stub" "read kp3")  XX
   (cmd "megacat-stub" "read kp0")               (cmd "megacat-stub" "read kp.")
+  _     _     _
 )
 
 ;; ============================================================
@@ -161,6 +184,9 @@
 ;; Remaining digits = stubbed with a marked TODO (# EDIT):
 ;;   build / test / docker compose up-down / nix flake update / rollback.
 ;; Confirm logic for destructive verbs lives here (tap-hold), not scripts.
+;;
+;; Encoder: transparent — knob/click pass through untouched.
+;; TODO: swap `_` for verbs (e.g. click = confirm-by-twist gate for resets).
 ;; ============================================================
 (deflayer write
   _     _     _     XX    _     _
@@ -168,4 +194,5 @@
   (cmd "megacat-stub" "write kp4")  (cmd "megacat-stub" "write kp5")  (cmd "megacat-stub" "write kp6")
   @wdots  @wcmt  @wrst  XX
   (cmd "megacat-stub" "write kp0")               (cmd "megacat-stub" "write kp.")
+  _     _     _
 )

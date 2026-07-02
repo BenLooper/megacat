@@ -39,10 +39,16 @@ sudo bash -c 'echo "KERNEL==\"uinput\", GROUP=\"uinput\", MODE=\"0660\"" > /etc/
 
 echo "Creating udev rule for macropad symlink..."
 sudo bash -c 'cat > /etc/udev/rules.d/91-macropad.rules << '"'"'UDEV'"'"'
-# Wired EPOMAKER EK21 (36b0:3066) — primary keyboard interface
+# Wired EPOMAKER EK21 (36b0:3066) — primary keyboard interface (event1)
 SUBSYSTEM=="input", ENV{ID_VENDOR_ID}=="36b0", ENV{ID_MODEL_ID}=="3066", ENV{ID_USB_INTERFACE_NUM}=="00", SYMLINK+="input/macropad"
 # 2.4GHz dongle (36b0:3002) — primary keyboard interface
 SUBSYSTEM=="input", ENV{ID_VENDOR_ID}=="36b0", ENV{ID_MODEL_ID}=="3002", ENV{ID_USB_INTERFACE_NUM}=="00", SYMLINK+="input/macropad"
+# Wired EK21 — Mouse interface (rotary encoder: scroll + click) = event2.
+# ID_INPUT_MOUSE=1 disambiguates from event4 (Consumer Control), which is
+# also interface 02 but lacks the ID_INPUT_MOUSE property.
+SUBSYSTEM=="input", ENV{ID_VENDOR_ID}=="36b0", ENV{ID_MODEL_ID}=="3066", ENV{ID_USB_INTERFACE_NUM}=="02", ENV{ID_INPUT_MOUSE}=="1", SYMLINK+="input/macropad-encoder"
+# 2.4GHz dongle — same Mouse interface
+SUBSYSTEM=="input", ENV{ID_VENDOR_ID}=="36b0", ENV{ID_MODEL_ID}=="3002", ENV{ID_USB_INTERFACE_NUM}=="02", ENV{ID_INPUT_MOUSE}=="1", SYMLINK+="input/macropad-encoder"
 UDEV'
 
 echo "Reloading udev rules..."

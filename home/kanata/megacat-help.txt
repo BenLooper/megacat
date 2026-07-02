@@ -31,7 +31,8 @@ BASE LAYER  (default) — the session map
   KP0       megacat-session-picker  fzf popup of all sessions
   KP.       megacat-session-new     popup prompts for name (detached)
   NLCK      megacat-help            this screen
-  kp/  kp*  kp-  reserved           stub (no-op TODO)
+  KP-       lrld                    live-reload kanata.kbd (iterate fast)
+  kp/  kp*  reserved                stub (no-op TODO)
   [MINE] x4 keys                    NOT in defsrc yet — see KEY FITTING
   kprt (hold) -> read layer
   kp+  (hold) -> write layer
@@ -57,11 +58,34 @@ WRITE LAYER  (hold kp+) — alter state
   KP3  megacat-write-reset    git reset --hard HEAD — HOLD to confirm
                                 tap  = notify "hold to confirm" (inert)
                                 hold = run (after ~350ms)
-  other digits                stubbed (megacat-stub "write kpN") — # EDIT:
-                                build / test / docker compose up-down /
-                                nix flake update / rollback-to-generation
+other digits                stubbed (megacat-stub "write kpN") — # EDIT:
+                                 build / test / docker compose up-down /
+                                 nix flake update / rollback-to-generation
 
-============================================================
+===========================================================
+ENCODER  (rotary knob + click; separate /dev/input/macropad-encoder)
+===========================================================
+  kanata also grabs the Mouse interface (event2) via linux-dev list syntax.
+  Three new defsrc columns: mwu (wheel up), mwd (wheel down), mmid (click).
+  v1: transparent passthrough (`_`) on EVERY layer — the knob still scrolls
+  your terminal and the click still does whatever middle-click does.
+  Per-layer verbs are reserved via TODO comments in kanata.kbd (one
+  alias-swap each, same pattern as the keyboard stubs). Candidates:
+    read  -> scrub the fzf preview / open match
+    write -> confirm-by-twist gate for destructive verbs
+    base  -> volume or session-cycle
+
+  Setup:
+    setup-macropad              one-time (adds the macropad-encoder udev rule)
+    wsl --shutdown + restart    (or detach/attach via usbipd) so rule fires
+    ls -la /dev/input/macropad-encoder   should exist
+    evtest /dev/input/macropad-encoder  verify events: REL_WHEEL, BTN_*
+
+  Iteration: edit kanata.kbd, press KP- (lrld) to live-reload. NOTE the
+  FIRST time a mwu/mwd/mmid event enters defsrc, lrld is NOT enough —
+  that first apply needs a full `systemctl --user restart kanata`.
+
+===========================================================
 OPS  (any shell)
 ============================================================
   kanata-logs               journalctl --user -u kanata -f
@@ -89,5 +113,12 @@ KEY FITTING
     3. Add the slot to every deflayer (base / read / write) — `_` will
        transparently fall through if you only want it bound on one layer.
     4. Place `@sk` / `@sr` / `@stub-mine` (or your alias) on that slot.
+
+  Wire an encoder verb:
+    1. Define the new verb as a `mkVerb` in home/kanata.nix.
+    2. Add an alias `@enc-up`/`@enc-dn`/`@enc-click` in kanata.kbd defalias.
+    3. Swap the matching `_` in the encoder row of the layer for the alias.
+       Leave the other layers transparent unless you want different
+       per-layer behaviour.
 
 Press q to close (bat pager).

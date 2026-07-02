@@ -446,7 +446,13 @@ in {
     devicePath = lib.mkOption {
       type = lib.types.str;
       default = "/dev/input/macropad";
-      description = "Path to the macropad event device (udev symlink, stable across wired/dongle).";
+      description = "Path to the macropad keyboard event device (udev symlink, stable across wired/dongle).";
+    };
+
+    deviceEncoderPath = lib.mkOption {
+      type = lib.types.str;
+      default = "/dev/input/macropad-encoder";
+      description = "Path to the macropad Mouse interface (rotary encoder scroll + click). Created by setup-macropad's udev rule on interface 02 with ID_INPUT_MOUSE=1.";
     };
 
     deviceVidPid = lib.mkOption {
@@ -466,7 +472,10 @@ in {
     home.packages = [ kanataPkg attach-macropad ] ++ megacatVerbs;
 
     xdg.configFile."kanata/kanata.kbd".source =
-      pkgs.replaceVars ./kanata/kanata.kbd { DEVICE_PATH = cfg.devicePath; };
+      pkgs.replaceVars ./kanata/kanata.kbd {
+        DEVICE_PATH = cfg.devicePath;
+        ENCODER_PATH = cfg.deviceEncoderPath;
+      };
 
     home.sessionVariables = {
       KANATA_ENABLED = "1";
