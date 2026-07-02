@@ -149,9 +149,9 @@
   @s4   @s5   @s6
   @s1   @s2   @s3   @read-mod
   @sp               @sn
-  ;; encoder: transparent so knob/click pass through to the OS unchanged.
-  ;; TODO: swap `_` for @enc-up/@enc-dn/@enc-click when finalizing base verbs.
-  _     _     _
+  ;; DIAGNOSTIC: events surface as tmux toasts to confirm kanata sees them.
+  ;; TODO after confirmation: swap back to `_ _ _` (transparent passthrough).
+  (cmd "megacat-notify" "enc: mwu")  (cmd "megacat-notify" "enc: mwd")  (cmd "megacat-notify" "enc: mmid")
 )
 
 ;; ============================================================
