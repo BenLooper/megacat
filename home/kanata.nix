@@ -494,8 +494,26 @@ in {
       Unit = {
         Description = "Kanata key remapper for EPOMAKER EK21 (megacat pad)";
         After = [ "default.target" ];
+        # WSL's synthetic udev is unreliable and applies the /dev/uinput group
+        # + mode (set by setup-macropad's /etc/udev/rules.d/90-uinput.rules)
+        # AFTER kanata's first attempts. Default StartLimitBurst=2 in 10s
+        # means kanata gives up before /dev/uinput perms ever settle.
+        # Relax to 20 attempts in 10 minutes so kanata keeps cycling until
+        # the race resolves (ExecStartPre polls first; this catches the
+        # residual cases where the poll times out but perms land seconds later).
+        StartLimitIntervalSec = 600;
+        StartLimitBurst = 20;
       };
       Service = {
+        # ExecStartPre polls /dev/uinput for up to 30s before letting kanata
+        # try to open it. Exits 0 the moment perms land (root:uinput 0660 +
+        # benlo ∈ uinput → `-w` is true), so the normal case is zero log spam
+        # and a clean single-shot start. Exits 1 after 30s timeout, which
+        # triggers a Restart cycle (combined with StartLimitBurst=20 above,
+        # gives ~18 chances in 10 min for the perms to land).
+        ExecStartPre = [
+          ''sh -c 'for i in $(seq 1 30); do [ -w /dev/uinput ] && exit 0; sleep 1; done; exit 1' ''
+        ];
         ExecStart = "${kanataPkg}/bin/kanata --cfg ${config.xdg.configFile."kanata/kanata.kbd".source}";
         # TMUX_TMPDIR MUST be set here. The interactive shell has it set (by
         # systemd's user session) to /run/user/<uid>, so its tmux talks to a
@@ -512,7 +530,7 @@ in {
           "PATH=%h/.nix-profile/bin:/nix/var/nix/profiles/default/bin:/usr/bin:/bin"
         ];
         Restart = "on-failure";
-        RestartSec = 5;
+        RestartSec = 2;
       };
       Install = {
         WantedBy = [ "default.target" ];
