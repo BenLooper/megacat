@@ -66,6 +66,11 @@ let
   # wraps each binary into the script's shebang env so they're on PATH.
   runtimeDeps = with pkgs; [ tmux fzf git ripgrep fd bat ];
 
+  # Help text shown by `megacat-help`. Baked into the Nix store so it ships
+  # with the build (no loose file to lose). Referenced by absolute store
+  # path interpolated into the megacat-help script (see below).
+  helpFile = ./kanata/megacat-help.txt;
+
   # Build a single megacat-* script. shellcheck runs at build time; the script
   # body uses `set -euo pipefail` so failures surface to kanata's logs.
   mkVerb = name: text:
@@ -245,6 +250,28 @@ let
     tmux display-message -d 1500 "TODO: $1"
   '';
 
+  # ---- reference / help -----------------------------------------------
+  # megacat-help — show the full pad keymap + ops reference.
+  #   * run from a terminal inside tmux  -> bat pager in this pane
+  #   * fired via kanata cmd              -> tmux display-popup with bat pager
+  #                                          on the current (addressed) session
+  #   * neither (no tmux available)        -> plain cat to stdout
+  # BOUND TO: nlck on base layer (also reachable from read/write via `_`
+  # transparency — pressing nlck while holding kprt or kp+ still fires help).
+  # The helpFile path is interpolated by Nix at build time; the popup's shell
+  # inherits tmux's env so bat resolves via the user profile.
+  megacat-help = mkVerb "megacat-help" ''
+    set -euo pipefail
+    HELP="${helpFile}"
+    if [ -n "''${TMUX:-}" ]; then
+      bat --no-config --style=plain --paging=auto "$HELP"
+    elif SESS=$(tmux display-message -p '#{session_name}' 2>/dev/null); then
+      tmux display-popup -t "$SESS" -E "bat --no-config --style=plain --paging=auto '$HELP'"
+    else
+      cat "$HELP"
+    fi
+  '';
+
   # Every megacat-* script that lands on PATH.
   megacatVerbs = [
     megacat-session
@@ -260,6 +287,7 @@ let
     megacat-write-reset
     megacat-notify
     megacat-stub
+    megacat-help
   ];
 
   # attach-macropad — bind/attach the EK21 to WSL via usbipd-win.

@@ -1,0 +1,88 @@
+MEGACAT PAD — three-layer tmux command surface
+============================================================
+
+LAYER MODEL
+  base  (default)         session map: Key N -> session N
+  read  (hold kprt)       non-mutating fzf popups
+  write (hold kp+)        mutating verbs
+
+MODIFIERS (momentary; both tall right-column keys)
+  kprt held  -> read layer   (lower tall key)
+  kp+  held  -> write layer  (upper tall key)
+
+TARGET MODEL (v1)
+  Scripts resolve the addressed session as tmux "current session" via
+  `tmux display-message -p '#{session_name}'` and repo ops cd into
+  `#{pane_current_path}` so they hit the right repo even when fired from
+  the pad.
+  SEAM (not built in v1): a future upgrade has Base write the target name
+  to ~/.cache/megacat/target and Read/Write read that file, so the pad
+  can act on a session you are NOT currently looking at. Do not build yet.
+
+============================================================
+BASE LAYER  (default) — the session map
+============================================================
+  KP1..KP9  megacat-session N       jump to session N (create-if-missing)
+  KP0       megacat-session-picker  fzf popup of all sessions
+  KP.       megacat-session-new     popup prompts for name (detached)
+  NLCK      megacat-help            this screen
+  kp/  kp*  kp-  reserved           stub (no-op TODO)
+  [MINE] x4 keys                    NOT in defsrc yet — see KEY FITTING
+  kprt (hold) -> read layer
+  kp+  (hold) -> write layer
+
+  [MINE] stubs already defined as aliases:
+    @sk  megacat-session-kill   kill addressed session (wrap in tap-hold)
+    @sr  megacat-session-rename popup prompts for new name
+
+============================================================
+READ LAYER  (hold kprt) — analyze, never mutate
+============================================================
+  KP7  megacat-read-grep      rg live-search, preview match in context,
+                               enter opens file at line in the pane
+  KP8  megacat-read-changed   git diff --name-only, preview each diff
+  KP9  megacat-read-branches  list branches, preview each branch's log
+  other digits                stubbed (megacat-stub "read kpN") — # EDIT
+
+============================================================
+WRITE LAYER  (hold kp+) — alter state
+============================================================
+  KP1  megacat-write-dots     `dots` (home-manager switch) — blind
+  KP2  megacat-write-commit   git add -A + commit popup ($EDITOR msg)
+  KP3  megacat-write-reset    git reset --hard HEAD — HOLD to confirm
+                                tap  = notify "hold to confirm" (inert)
+                                hold = run (after ~350ms)
+  other digits                stubbed (megacat-stub "write kpN") — # EDIT:
+                                build / test / docker compose up-down /
+                                nix flake update / rollback-to-generation
+
+============================================================
+OPS  (any shell)
+============================================================
+  kanata-logs               journalctl --user -u kanata -f
+  dots                      home-manager switch --flake ~/dotfiles#personal --impure
+  attach-macropad           re-attach pad to WSL via usbipd
+  setup-macropad            one-time permissions (sudo, then reboot)
+  megacat-help              this screen (popup or stdout)
+  systemctl --user status kanata
+  systemctl --user restart kanata    (after editing kanata.kbd)
+
+============================================================
+KEY FITTING
+============================================================
+  Fill a stub verb:
+    1. Define the new verb as a `mkVerb` in home/kanata.nix.
+    2. Add an alias in home/kanata/kanata.kbd defalias.
+    3. Replace the matching `(cmd "megacat-stub" "...")` line in the
+       layer with the new `@alias`. No structural change needed.
+
+  Place a [MINE] key on the board:
+    1. Run `evtest /dev/input/macropad` and press each [MINE] key.
+       Record the reported KEY_* code (e.g. KEY_F13).
+    2. Map it via `deflocalkeys-linux` (or use a recognized stock keysym)
+       and add it to defsrc in the correct grid slot.
+    3. Add the slot to every deflayer (base / read / write) — `_` will
+       transparently fall through if you only want it bound on one layer.
+    4. Place `@sk` / `@sr` / `@stub-mine` (or your alias) on that slot.
+
+Press q to close (bat pager).

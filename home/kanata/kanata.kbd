@@ -37,7 +37,7 @@
 ;; defsrc — wire them up after identifying their HID codes with
 ;; `evtest /dev/input/macropad`, then place @sk / @sr / @stub-mine on them):
 ;;
-;;   tab   bspc  nlck  kp/  kp*  kp-
+;;   tab   bspc  @help kp/  kp*  kp-
 ;;   kp7   kp8   kp9   kp+
 ;;   kp4   kp5   kp6
 ;;   kp1   kp2   kp3   kprt
@@ -71,6 +71,11 @@
   ;; kprt held -> read layer.  kp+ held -> write layer.
   read-mod   (layer-while-held read)
   write-mod  (layer-while-held write)
+
+  ;; ---- help (full pad reference; works from any layer) --------
+  ;; Bound to nlck on base. nlck on read/write is `_` (transparent),
+  ;; so it falls through to base -> @help fires from any active layer.
+  help  (cmd "megacat-help")
 
   ;; ---- base: session map --------------------------------------
   ;; KP1..KP9 -> jump to session N (create-if-missing).
@@ -124,7 +129,7 @@
 ;;   kp+                         : hold for WRITE layer
 ;; ============================================================
 (deflayer base
-  _     _     _     _     _     _
+  _     _     @help _     _     _
   @s7   @s8   @s9   @write-mod
   @s4   @s5   @s6
   @s1   @s2   @s3   @read-mod
