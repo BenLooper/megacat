@@ -43,12 +43,16 @@ sudo bash -c 'cat > /etc/udev/rules.d/91-macropad.rules << '"'"'UDEV'"'"'
 SUBSYSTEM=="input", ENV{ID_VENDOR_ID}=="36b0", ENV{ID_MODEL_ID}=="3066", ENV{ID_USB_INTERFACE_NUM}=="00", SYMLINK+="input/macropad"
 # 2.4GHz dongle (36b0:3002) — primary keyboard interface
 SUBSYSTEM=="input", ENV{ID_VENDOR_ID}=="36b0", ENV{ID_MODEL_ID}=="3002", ENV{ID_USB_INTERFACE_NUM}=="00", SYMLINK+="input/macropad"
-# Wired EK21 — Mouse interface (rotary encoder: scroll + click) = event2.
-# ID_INPUT_MOUSE=1 disambiguates from event4 (Consumer Control), which is
-# also interface 02 but lacks the ID_INPUT_MOUSE property.
-SUBSYSTEM=="input", ENV{ID_VENDOR_ID}=="36b0", ENV{ID_MODEL_ID}=="3066", ENV{ID_USB_INTERFACE_NUM}=="02", ENV{ID_INPUT_MOUSE}=="1", SYMLINK+="input/macropad-encoder"
-# 2.4GHz dongle — same Mouse interface
-SUBSYSTEM=="input", ENV{ID_VENDOR_ID}=="36b0", ENV{ID_MODEL_ID}=="3002", ENV{ID_USB_INTERFACE_NUM}=="02", ENV{ID_INPUT_MOUSE}=="1", SYMLINK+="input/macropad-encoder"
+# Wired EK21 — Consumer Control interface (rotary encoder). Evtest confirmed:
+# twist CW/CCW -> KEY_VOLUMEUP/DOWN, click -> KEY_MUTE. ATTRS{name} uniquely
+# disambiguates Consumer Control from the other interface-02 event nodes
+# (System Control, EK21 Keyboard) which all share interface 02 but have
+# distinct device names in /proc/bus/input/devices.
+SUBSYSTEM=="input", KERNEL=="event*", ENV{ID_VENDOR_ID}=="36b0", ENV{ID_MODEL_ID}=="3066", ATTRS{name}=="RDMCTMZT EPOMAKER EK21 Consumer Control", SYMLINK+="input/macropad-encoder"
+# 2.4GHz dongle — same HID name (firmware almost certainly reports the same
+# descriptor; only VID:PID differs). If the dongle ever fails to create the
+# symlink, run `udevadm info -q all /dev/input/eventN` on each interface.
+SUBSYSTEM=="input", KERNEL=="event*", ENV{ID_VENDOR_ID}=="36b0", ENV{ID_MODEL_ID}=="3002", ATTRS{name}=="RDMCTMZT EPOMAKER EK21 Consumer Control", SYMLINK+="input/macropad-encoder"
 UDEV'
 
 echo "Reloading udev rules..."

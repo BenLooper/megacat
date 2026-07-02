@@ -65,25 +65,42 @@ other digits                stubbed (megacat-stub "write kpN") — # EDIT:
 ===========================================================
 ENCODER  (rotary knob + click; separate /dev/input/macropad-encoder)
 ===========================================================
-  kanata also grabs the Mouse interface (event2) via linux-dev list syntax.
-  Three new defsrc columns: mwu (wheel up), mwd (wheel down), mmid (click).
-  v1: transparent passthrough (`_`) on EVERY layer — the knob still scrolls
-  your terminal and the click still does whatever middle-click does.
-  Per-layer verbs are reserved via TODO comments in kanata.kbd (one
-  alias-swap each, same pattern as the keyboard stubs). Candidates:
+  kanata grabs the Consumer Control interface (eventN) via linux-dev list
+  syntax. The EK21's rotary knob emits Consumer-page keys per detent, not
+  mouse wheel events:
+    twist clockwise         -> KEY_VOLUMEUP   (evdev 115)
+    twist counter-clockwise -> KEY_VOLUMEDOWN (evdev 114)
+    click                   -> KEY_MUTE       (evdev 113)
+
+  kanata TRANSLATES those keysyms (registered via deflocalkeys-linux as
+  enc-up / enc-dn / enc-clk) into real mouse events emitted to /dev/uinput:
+    enc-up -> (mwheel-up 50 120)    one 120-unit REL_WHEEL notch per detent
+    enc-dn -> (mwheel-down 50 120)   same, opposite direction
+    enc-clk -> mmid                 hold middle mouse while clicked = middle-click
+
+  Result: the knob behaves as a scroll wheel + middle-click uniformly across
+  ALL layers (pager, fzf preview, shell, browser, etc). The volume keys no
+  longer reach the OS — kanata consumes them and emits scroll/click instead.
+  Per-layer verbs come later as one-alias-swaps (same pattern as the
+  keyboard stubs). Candidates:
     read  -> scrub the fzf preview / open match
     write -> confirm-by-twist gate for destructive verbs
-    base  -> volume or session-cycle
 
   Setup:
-    setup-macropad              one-time (adds the macropad-encoder udev rule)
+    setup-macropad              one-time (adds the ATTRS{name} udev rule
+                                targeting "RDMCTMZT EPOMAKER EK21 Consumer
+                                Control")
     wsl --shutdown + restart    (or detach/attach via usbipd) so rule fires
     ls -la /dev/input/macropad-encoder   should exist
-    evtest /dev/input/macropad-encoder  verify events: REL_WHEEL, BTN_*
+    readlink -f /dev/input/macropad-encoder | xargs udevadm info -q all
+        # should report ATTRS{name}="...Consumer Control"
 
   Iteration: edit kanata.kbd, press KP- (lrld) to live-reload. NOTE the
-  FIRST time a mwu/mwd/mmid event enters defsrc, lrld is NOT enough —
-  that first apply needs a full `systemctl --user restart kanata`.
+  FIRST time enc-up/enc-dn/enc-clk enters defsrc (or after a kanata.kbd
+  structural change that adds/removes defsrc columns), lrld is NOT enough —
+  that first apply needs a full `systemctl --user restart kanata`. The
+  long-running ExecStartPre also handles a /dev/uinput permission race on
+  fresh WSL boots (kanata polls up to 30s for uinput perms before starting).
 
 ===========================================================
 OPS  (any shell)
@@ -116,9 +133,12 @@ KEY FITTING
 
   Wire an encoder verb:
     1. Define the new verb as a `mkVerb` in home/kanata.nix.
-    2. Add an alias `@enc-up`/`@enc-dn`/`@enc-click` in kanata.kbd defalias.
-    3. Swap the matching `_` in the encoder row of the layer for the alias.
-       Leave the other layers transparent unless you want different
-       per-layer behaviour.
+    2. Add an alias `@enc-up`/`@enc-dn`/`@enc-click` in kanata.kbd defalias
+       (the source keysyms enc-up/enc-dn/enc-clk are already registered via
+       deflocalkeys-linux — no extra setup needed).
+    3. Swap the matching `(mwheel-up 50 120)` / `(mwheel-down 50 120)` / `mmid`
+       in the encoder row of the layer for the alias. Leave the other layers
+       with the mwheel/mmio translation unless you want different per-layer
+       behaviour.
 
 Press q to close (bat pager).

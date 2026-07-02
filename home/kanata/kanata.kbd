@@ -43,11 +43,18 @@
 ;;   kp1   kp2   kp3   kprt
 ;;   kp0                kp.
 ;;
-;; ENCODER (separate /dev/input/macropad-encoder = Mouse interface, event2)
-;;   mwu mwd mmid appended below defsrc. All three are `_` (transparent) on
-;;   every layer in v1, so kanata re-emits the original wheel/click events
-;;   to /dev/uinput and the knob still scrolls your terminal / clicks middle
-;;   paste. Per-layer verbs come later as one-alias-swaps (see TODO in layers).
+;; ENCODER (separate /dev/input/macropad-encoder = Consumer Control interface)
+;;   The EK21's rotary knob emits Consumer-page keys on its Consumer Control
+;;   interface (NOT a wheel on the Mouse interface as one might assume):
+;;     twist clockwise        -> KEY_VOLUMEUP   (evdev 115)
+;;     twist counter-clockwise -> KEY_VOLUMEDOWN (evdev 114)
+;;     click                  -> KEY_MUTE       (evdev 113)
+;;   kanata grabs the Consumer Control event node (/dev/input/macropad-encoder,
+;;   created by setup-macropad's ATTRS{name} udev rule) and TRANSLATES those
+;;   keysyms to real mouse events via deflocalkeys-linux + mwheel/mmio actions
+;;   so the knob behaves as a scroll wheel + middle-click everywhere (pager,
+;;   fzf preview, shell history, browser, etc) uniformly across all layers.
+;;   Per-layer verbs come later as one-alias-swaps (see TODO in layers).
 ;;
 ;; RECYCLING / TODO MARKERS
 ;;   stubbed keys invoke `megacat-stub "<layer> <key>"`, which surfaces a
@@ -59,14 +66,27 @@
 (defcfg
   ;; linux-dev accepts a colon-separated list OR list syntax (used here).
   ;; List syntax lets paths contain colons without escaping. The two entries
-  ;; are the keyboard interface (/dev/input/macropad) and the Mouse interface
-  ;; (/dev/input/macropad-encoder) — the latter exposes the rotary encoder's
-  ;; REL_WHEEL events (mwu/mwd) and BTN_MIDDLE click (mmid) to kanata.
+  ;; are the keyboard interface (/dev/input/macropad) and the Consumer Control
+  ;; interface (/dev/input/macropad-encoder) — the latter exposes the rotary
+  ;; encoder's KEY_VOLUMEUP/DOWN/MUTE events (registered as enc-up/dn/clk via
+  ;; deflocalkeys-linux below) to kanata for translation to scroll/click.
   linux-dev (@DEVICE_PATH@ @ENCODER_PATH@)
   danger-enable-cmd yes
   linux-continue-if-no-devs-found yes
   process-unmapped-keys yes
   log-layer-changes yes
+)
+
+;; Custom keysyms for the rotary encoder's Consumer-page events. Evtest
+;; reported these evdev codes on the Consumer Control interface:
+;;   115 = KEY_VOLUMEUP   (twist CW)    -> registered as `enc-up`
+;;   114 = KEY_VOLUMEDOWN (twist CCW)   -> registered as `enc-dn`
+;;   113 = KEY_MUTE       (click)       -> registered as `enc-clk`
+;; kanata can then bind these names in defsrc/deflayer like any keysym.
+(deflocalkeys-linux
+  enc-up   115
+  enc-dn   114
+  enc-clk  113
 )
 
 (defsrc
@@ -75,9 +95,10 @@
   kp4   kp5   kp6
   kp1   kp2   kp3   kprt
   kp0               kp.
-  ;; Rotary encoder (Mouse interface). Position doesn't matter — kanata keys
-  ;; these by name. They MUST appear in every deflayer with the same count.
-  mwu   mwd   mmid
+  ;; Rotary encoder (Consumer Control interface). Position doesn't matter —
+  ;; kanata keys these by name. They MUST appear in every deflayer with the
+  ;; same count.
+  enc-up   enc-dn   enc-clk
 )
 
 (defalias
@@ -141,7 +162,7 @@
 ;;   kp.                         : new detached session (prompt)
 ;;   kprt                        : hold for READ layer
 ;;   kp+                         : hold for WRITE layer
-;;   encoder                     : transparent passthrough (knob still scrolls)
+;;   encoder                     : translate to scroll + middle-click
 ;; ============================================================
 (deflayer base
   _     _     @help _     _     lrld
@@ -149,9 +170,12 @@
   @s4   @s5   @s6
   @s1   @s2   @s3   @read-mod
   @sp               @sn
-  ;; DIAGNOSTIC: events surface as tmux toasts to confirm kanata sees them.
-  ;; TODO after confirmation: swap back to `_ _ _` (transparent passthrough).
-  (cmd "megacat-notify" "enc: mwu")  (cmd "megacat-notify" "enc: mwd")  (cmd "megacat-notify" "enc: mmid")
+  ;; Encoder: translate volume/mute keys to a real scroll wheel + middle-click.
+  ;; (mwheel-up/down 50 120) emits one 120-unit REL_WHEEL notch per detent,
+  ;; 50ms interval. mmid = hold middle mouse while enc-clk held; the knob's
+  ;; quick 1->0 press emits a clean BTN_MIDDLE down->up = one middle-click.
+  ;; TODO: swap for @enc-up/@enc-dn/@enc-click when finalizing per-layer verbs.
+  (mwheel-up 50 120)  (mwheel-down 50 120)  mmid
 )
 
 ;; ============================================================
@@ -165,9 +189,9 @@
 ;; tab/bspc/nlck stay transparent so they keep working inside the popup's
 ;; shell when the popup is up.
 ;;
-;; Encoder: transparent — knob scrolls the fzf preview, click passes through.
-;; TODO: swap `_` for @enc-up/@enc-dn/@enc-click to intercept (e.g. for
-;; navigating fzf results without re-emitting to the OS).
+;; Encoder: same translation as base — knob scrolls the fzf preview, click
+;; is a middle-click (useful in fzf for opening in a split, etc). TODO: swap
+;; for @scrub-up/@scrub-dn/@enc-click when finalizing per-layer verbs.
 ;; ============================================================
 (deflayer read
   _     _     _     _     _     _
@@ -175,7 +199,7 @@
   (cmd "megacat-stub" "read kp4")  (cmd "megacat-stub" "read kp5")  (cmd "megacat-stub" "read kp6")
   (cmd "megacat-stub" "read kp1")  (cmd "megacat-stub" "read kp2")  (cmd "megacat-stub" "read kp3")  XX
   (cmd "megacat-stub" "read kp0")               (cmd "megacat-stub" "read kp.")
-  _     _     _
+  (mwheel-up 50 120)  (mwheel-down 50 120)  mmid
 )
 
 ;; ============================================================
@@ -185,8 +209,8 @@
 ;;   build / test / docker compose up-down / nix flake update / rollback.
 ;; Confirm logic for destructive verbs lives here (tap-hold), not scripts.
 ;;
-;; Encoder: transparent — knob/click pass through untouched.
-;; TODO: swap `_` for verbs (e.g. click = confirm-by-twist gate for resets).
+;; Encoder: same translation as base. TODO: swap for verbs (e.g. click =
+;; confirm-by-twist gate for resets).
 ;; ============================================================
 (deflayer write
   _     _     _     XX    _     _
@@ -194,5 +218,5 @@
   (cmd "megacat-stub" "write kp4")  (cmd "megacat-stub" "write kp5")  (cmd "megacat-stub" "write kp6")
   @wdots  @wcmt  @wrst  XX
   (cmd "megacat-stub" "write kp0")               (cmd "megacat-stub" "write kp.")
-  _     _     _
+  (mwheel-up 50 120)  (mwheel-down 50 120)  mmid
 )
