@@ -17,29 +17,45 @@
 # Scripts are exposed on PATH (~/.nix-profile/bin) and called by kanata's
 # `cmd` action (one script call per key — kanata does NOT type).
 #
-# TARGET MODEL (v1): Read/write scripts resolve the addressed session as the
-# tmux current session via `tmux display-message -p '#{session_name}'` and cd
-# into that session's pane path via `#{pane_current_path}'.
+# TARGET MODEL (v2, replaces v1 "current session"):
+#   kanata's `cmd` subprocess is NOT a tmux client — there is no "current
+#   session" or "current client" from its vantage. Calling `tmux display-message
+#   -p '#{session_name}'` or `tmux switch-client -t N` from a kanata-spawned
+#   script fails with "no current client" and silently no-ops (the symptom
+#   that first appeared as "no keys work").
+#   Fix: every verb first resolves an attached client via
+#   `tmux list-clients -F '#{client_name}' | head -n 1`, then uses that
+#   client as the explicit target: `display-message -t "$CLIENT"`,
+#   `display-popup -t "$CLIENT"`, `switch-client -c "$CLIENT" -t "$N"`.
+#   v1 single-window use picks the first (lexicographically) attached client;
+#   multi-window refinement is a SEAM candidate.
 #
-#   SEAM (not built in v1): a future upgrade replaces the session resolution
-#   with a file read — Base writes the desired target name to
-#   `~/.cache/megacat/target` and Read/Write read that file, so the pad can
-#   act on a session you are NOT currently looking at. Do NOT build that here.
+#   SEAM (not built yet): the `~/.cache/megacat/target` file upgrade would let
+#   Base write a target session name and Read/Write read it, so the pad can act
+#   on a session you are NOT currently looking at. A second seam covers picking
+#   a non-default client when several are attached. Do NOT build either here.
 #
 # ------------------------------------------------------------
-# SOCKET GOTCHA (most important thing to verify after first install):
-#   kanata's `cmd` spawns `tmux ...` outside any TTY. tmux finds its server
-#   socket via `$TMUX_TMPDIR` (default `/tmp/tmux-<uid>/default`). The
-#   interactive shell does NOT set TMUX_TMPDIR, so its tmux uses that default.
-#   Earlier versions of this file set `TMUX_TMPDIR=/run/user/%U` in the kanata
-#   service Environment, which pointed kanata's tmux at a DIFFERENT socket than
-#   the shell's -> the two talked to different servers -> every send-keys /
-#   display-popup silently no-op'd. We now leave TMUX_TMPDIR unset here so
-#   kanata's tmux talks to the same default socket the shell uses.
-#   Symptom if it ever regresses: pad keys do nothing, `kanata-logs` shows
-#   "no server" or "can't find session: main". Verify:
-#     echo $TMUX_TMPDIR       # in your shell (should be empty)
-#     systemctl --user show kanata | grep TMUX_TMPDIR  # (should be empty)
+# SOCKET GOTCHA (the single most common silent-no-op failure mode):
+#   tmux locates its server socket via $TMUX_TMPDIR, falling back to /tmp.
+#   The interactive shell's $TMUX_TMPDIR is set (by systemd's user session) to
+#   /run/user/<uid>, so the shell's tmux talks to a server on
+#   /run/user/<uid>/tmux-<uid>/default.
+#   kanata's `cmd` subprocess has NO $TMUX_TMPDIR unless we explicitly set one.
+#   Without it, kanata-spawned tmux uses /tmp/tmux-<uid>/default — a DIFFERENT
+#   server than the shell's. The two never see the same sessions or clients;
+#   every switch-client / display-popup fails with "no current client" and
+#   writes to kanata-logs instead of landing in your terminal.
+#   FIX: explicit `TMUX_TMPDIR=/run/user/%U` in this service's Environment so
+#   kanata's tmux talks to the same socket as the shell. (TMPDIR alone does
+#   NOT help — tmux 3.6a only honors TMUX_TMPDIR for socket location.)
+#   Verify after install:
+#     echo $TMUX_TMPDIR                                       # shell (= /run/user/<uid>)
+#     systemctl --user show kanata -p Environment | grep TMUX_TMPDIR
+#     tmux ls && env -u TMUX TMPDIR=/run/user/$(id -u) tmux ls  # (should match)
+#   If a stale orphan tmux server at /tmp/tmux-<uid>/default was created before
+#   this fix (e.g. by earlier buggy megacat-session calls), kill it once:
+#     tmux -S /tmp/tmux-$(id -u)/default kill-server
 # ------------------------------------------------------------
 #
 # PERMISSIONS (one-time per machine, requires sudo):  setup-macropad
@@ -81,37 +97,51 @@ let
 
   # ---- base verbs (the session map) -------------------------------------
   megacat-session = mkVerb "megacat-session" ''
-    # megacat-session N — jump to tmux session N (create-if-missing).
-    # This is the ONLY verb that takes an argument from kanata (the session id).
+    # megacat-session N — move the first attached client to session N
+    # (create-if-missing). The ONLY verb that takes an arg from kanata.
+    # kanata's cmd subprocess is not a tmux client, so switch-client MUST
+    # name the client explicitly via -c $CLIENT (no -c => "no current client").
     set -euo pipefail
-    if tmux has-session -t "$1" 2>/dev/null; then
-      tmux switch-client -t "$1"
-    else
-      tmux new-session -d -s "$1"
-      tmux switch-client -t "$1"
+    N="$1"
+    CLIENT=$(tmux list-clients -F '#{client_name}' 2>/dev/null | head -n 1) || true
+    if [ -z "$CLIENT" ]; then
+      tmux display-message -d 2000 "megacat: no attached client" 2>/dev/null || true
+      exit 0
     fi
+    if ! tmux has-session -t "$N" 2>/dev/null; then
+      tmux new-session -d -s "$N"
+    fi
+    tmux switch-client -c "$CLIENT" -t "$N"
   '';
 
   megacat-session-picker = mkVerb "megacat-session-picker" ''
     # megacat-session-picker — fzf launcher over all tmux sessions.
-    # Pops up on the addressed (current) session's attached client; selecting
-    # a row switches that client to the chosen session.
+    # Pops up on the first attached client; selecting a row moves THAT client
+    # to the chosen session (via -c $CLIENT).
     set -euo pipefail
-    SESS=$(tmux display-message -p '#{session_name}')
-    tmux display-popup -t "$SESS" -E \
-      'tmux ls | cut -d: -f1 | fzf --prompt="session> " | xargs -I{} tmux switch-client -t {}'
+    CLIENT=$(tmux list-clients -F '#{client_name}' 2>/dev/null | head -n 1) || true
+    if [ -z "$CLIENT" ]; then
+      tmux display-message -d 2000 "megacat: no attached client" 2>/dev/null || true
+      exit 0
+    fi
+    # $CLIENT is expanded by this outer shell; the popup's shell sees the
+    # resolved pty path as a literal string inside switch-client -c.
+    tmux display-popup -t "$CLIENT" -E \
+      "tmux ls | cut -d: -f1 | fzf | xargs -I{} tmux switch-client -c \"$CLIENT\" -t {}"
   '';
 
   megacat-session-new = mkVerb "megacat-session-new" ''
     # megacat-session-new — popup prompts for a name, creates session detached.
     # Deliberately does NOT switch to it (matches "new detached session" spec).
-    # The whole `read ... && tmux new-session` runs inside the popup's own sh,
-    # so $N is set and read by the same shell — no outer/inner leak. N uses
-    # the \$N escape (mirroring megacat-session-rename) so it stays literal
-    # through the outer shell and is expanded by the popup's shell.
+    # \$N stays literal through the outer shell so the popup's shell expands it
+    # after `read` (mirrors megacat-session-rename).
     set -euo pipefail
-    SESS=$(tmux display-message -p '#{session_name}')
-    tmux display-popup -t "$SESS" -E \
+    CLIENT=$(tmux list-clients -F '#{client_name}' 2>/dev/null | head -n 1) || true
+    if [ -z "$CLIENT" ]; then
+      tmux display-message -d 2000 "megacat: no attached client" 2>/dev/null || true
+      exit 0
+    fi
+    tmux display-popup -t "$CLIENT" -E \
       "read -p 'session name: ' N; [ -n \"\$N\" ] && tmux new-session -d -s \"\$N\""
   '';
 
@@ -122,17 +152,27 @@ let
     # In kanata.kbd, wrap this in tap-hold (tap=notify, hold=run) so a stray
     # tap is inert — same pattern as @wrst on the write layer.
     set -euo pipefail
-    SESS=$(tmux display-message -p '#{session_name}')
+    CLIENT=$(tmux list-clients -F '#{client_name}' 2>/dev/null | head -n 1) || true
+    if [ -z "$CLIENT" ]; then
+      tmux display-message -d 2000 "megacat: no attached client" 2>/dev/null || true
+      exit 0
+    fi
+    SESS=$(tmux display-message -t "$CLIENT" -p '#{session_name}')
     tmux kill-session -t "$SESS"
   '';
 
   megacat-session-rename = mkVerb "megacat-session-rename" ''
     # megacat-session-rename — popup prompts for a new name for the addressed
-    # session. $SESS is expanded by this outer shell before the popup runs;
-    # \$N is preserved literally so the popup's shell expands it after `read`.
+    # session. $SESS and $CLIENT are expanded by this outer shell; \$N stays
+    # literal so the popup's shell expands it after `read`.
     set -euo pipefail
-    SESS=$(tmux display-message -p '#{session_name}')
-    tmux display-popup -t "$SESS" -E \
+    CLIENT=$(tmux list-clients -F '#{client_name}' 2>/dev/null | head -n 1) || true
+    if [ -z "$CLIENT" ]; then
+      tmux display-message -d 2000 "megacat: no attached client" 2>/dev/null || true
+      exit 0
+    fi
+    SESS=$(tmux display-message -t "$CLIENT" -p '#{session_name}')
+    tmux display-popup -t "$CLIENT" -E \
       "read -p 'rename $SESS to: ' N; [ -n \"\$N\" ] && tmux rename-session -t \"$SESS\" \"\$N\""
   '';
 
@@ -140,16 +180,21 @@ let
   megacat-read-grep = mkVerb "megacat-read-grep" ''
     # megacat-read-grep — rg live-reload popup; preview match in context;
     # enter opens the file at line in the addressed session's pane.
-    # NB: shell var refs use BARE $VAR (no braces) and the empty rg pattern
-    # is "" (not the shell single-quote pair) to avoid colliding with Nix
+    # NB: the empty rg pattern uses the double-quoted empty string "" rather
+    # than the shell single-quote pair, to avoid colliding with Nix
     # multiline-string escapes in this file.
     set -euo pipefail
-    SESS=$(tmux display-message -p '#{session_name}')
-    CWD=$(tmux display-message -t "$SESS" -p '#{pane_current_path}')
+    CLIENT=$(tmux list-clients -F '#{client_name}' 2>/dev/null | head -n 1) || true
+    if [ -z "$CLIENT" ]; then
+      tmux display-message -d 2000 "megacat: no attached client" 2>/dev/null || true
+      exit 0
+    fi
+    SESS=$(tmux display-message -t "$CLIENT" -p '#{session_name}')
+    CWD=$(tmux display-message -t "$CLIENT" -p '#{pane_current_path}')
     TF=$(mktemp)
-    # The popup command runs via sh -c, so expand $CWD and $TF HERE (outer
-    # shell) before passing to tmux — the popup's shell doesn't inherit them.
-    tmux display-popup -t "$SESS" -E \
+    # The popup command runs via sh -c, so expand $CWD/$TF HERE (outer shell)
+    # before passing to tmux — the popup's shell doesn't inherit them.
+    tmux display-popup -t "$CLIENT" -E \
       "rg --line-number --no-heading -- \"\" \"$CWD\" \
          | fzf --delimiter ':' --with-nth 1,2 \
                --preview 'bat --color=always --highlight-line {2} --style=numbers {1}' \
@@ -160,8 +205,8 @@ let
     [ -z "$SEL" ] && exit 0
     FILE=$(printf '%s' "$SEL" | cut -d: -f1)
     LINE=$(printf '%s' "$SEL" | cut -d: -f2)
-    # Send nvim +<line> <file> + Enter to the addressed pane's shell. Assumes
-    # the pane is at a shell prompt (send-keys goes to whatever has stdin).
+    # Sends nvim +<line> <file> + Enter to the addressed session's CURRENT pane.
+    # Assumes the pane is at a shell prompt (send-keys goes to whatever has stdin).
     tmux send-keys -t "$SESS" "nvim '+$LINE' '$FILE'" Enter
   '';
 
@@ -169,10 +214,15 @@ let
     # megacat-read-changed — `git diff --name-only | fzf` with diff preview.
     # Read-only: no checkout, no stage. Enter opens the chosen file.
     set -euo pipefail
-    SESS=$(tmux display-message -p '#{session_name}')
-    CWD=$(tmux display-message -t "$SESS" -p '#{pane_current_path}')
+    CLIENT=$(tmux list-clients -F '#{client_name}' 2>/dev/null | head -n 1) || true
+    if [ -z "$CLIENT" ]; then
+      tmux display-message -d 2000 "megacat: no attached client" 2>/dev/null || true
+      exit 0
+    fi
+    SESS=$(tmux display-message -t "$CLIENT" -p '#{session_name}')
+    CWD=$(tmux display-message -t "$CLIENT" -p '#{pane_current_path}')
     TF=$(mktemp)
-    tmux display-popup -t "$SESS" -E \
+    tmux display-popup -t "$CLIENT" -E \
       "git -C \"$CWD\" diff --name-only \
          | fzf --preview 'git -C \"$CWD\" diff --color {}' \
                --preview-window 'right:60%' \
@@ -187,11 +237,15 @@ let
     # megacat-read-branches — list branches, preview each branch's log.
     # Read-only: no checkout.
     set -euo pipefail
-    SESS=$(tmux display-message -p '#{session_name}')
-    CWD=$(tmux display-message -t "$SESS" -p '#{pane_current_path}')
+    CLIENT=$(tmux list-clients -F '#{client_name}' 2>/dev/null | head -n 1) || true
+    if [ -z "$CLIENT" ]; then
+      tmux display-message -d 2000 "megacat: no attached client" 2>/dev/null || true
+      exit 0
+    fi
+    CWD=$(tmux display-message -t "$CLIENT" -p '#{pane_current_path}')
     TF=$(mktemp)
     # Drop the symbolic-ref line so fzf only shows real branch names.
-    tmux display-popup -t "$SESS" -E \
+    tmux display-popup -t "$CLIENT" -E \
       "git -C \"$CWD\" branch --all --format='%(refname:short)' \
          | grep -v '^HEAD$' \
          | fzf --preview 'git -C \"$CWD\" log --oneline --graph --color=always {}' \
@@ -203,10 +257,10 @@ let
   # ---- write verbs (hold kp+) — alter state -----------------------------
   megacat-write-dots = mkVerb "megacat-write-dots" ''
     # megacat-write-dots — home-manager switch. SAFE + DETERMINATE -> blind.
-    # Runs the same `dots` alias the shell defines, inlined (kanata's cmd
-    # calls the binary directly, no shell aliases), so the profile name is
-    # hardcoded here as "personal". Swap to "work" if you ever drive this
-    # from a work profile; or parameterize via an env var if you use both.
+    # No tmux or client required: it just runs the switch in-process; output
+    # (success/failure) goes to kanata-logs. Profile hardcoded to "personal".
+    # Swap to "work" if you ever drive this from a work profile; or
+    # parameterize via an env var if you use both.
     set -euo pipefail
     exec home-manager switch --flake "$HOME/dotfiles#personal" --impure
   '';
@@ -214,11 +268,15 @@ let
   megacat-write-commit = mkVerb "megacat-write-commit" ''
     # megacat-write-commit — git add -A then commit in a popup. $EDITOR opens
     # inside the popup (nvim by default — see home/default.nix). Empty commit
-    # message aborts, which is git's own behaviour; the popup then closes.
+    # message aborts (git's own behaviour); the popup then closes.
     set -euo pipefail
-    SESS=$(tmux display-message -p '#{session_name}')
-    CWD=$(tmux display-message -t "$SESS" -p '#{pane_current_path}')
-    tmux display-popup -t "$SESS" -E \
+    CLIENT=$(tmux list-clients -F '#{client_name}' 2>/dev/null | head -n 1) || true
+    if [ -z "$CLIENT" ]; then
+      tmux display-message -d 2000 "megacat: no attached client" 2>/dev/null || true
+      exit 0
+    fi
+    CWD=$(tmux display-message -t "$CLIENT" -p '#{pane_current_path}')
+    tmux display-popup -t "$CLIENT" -E \
       "cd \"$CWD\" && git add -A && git commit"
   '';
 
@@ -228,18 +286,27 @@ let
     # tap=notify "hold to confirm", hold=run this), so a stray tap is inert.
     # The script itself runs BLIND once kanata has confirmed the hold.
     set -euo pipefail
-    SESS=$(tmux display-message -p '#{session_name}')
-    CWD=$(tmux display-message -t "$SESS" -p '#{pane_current_path}')
+    CLIENT=$(tmux list-clients -F '#{client_name}' 2>/dev/null | head -n 1) || true
+    if [ -z "$CLIENT" ]; then
+      tmux display-message -d 2000 "megacat: no attached client" 2>/dev/null || true
+      exit 0
+    fi
+    CWD=$(tmux display-message -t "$CLIENT" -p '#{pane_current_path}')
     git -C "$CWD" reset --hard HEAD
   '';
 
   # ---- shared notification + stub helpers -------------------------------
+  # Toast every attached client (best-effort). When fired from kanata there
+  # is no "current client", so iterate. With no clients attached, this is
+  # invisible but exit-0 (kanata-logs is the only signal in that case).
   megacat-notify = mkVerb "megacat-notify" ''
-    # megacat-notify MSG — surface a short toast in the visible tmux client.
+    # megacat-notify MSG — short toast on every attached tmux client.
     # Used by hold-to-confirm verbs (e.g. reset) to report that a tap was
     # registered but the destructive action needs a hold.
     set -euo pipefail
-    tmux display-message -d 1500 "$1"
+    while IFS= read -r c; do
+      tmux display-message -t "$c" -d 1500 "$1"
+    done < <(tmux list-clients -F '#{client_name}' 2>/dev/null)
   '';
 
   megacat-stub = mkVerb "megacat-stub" ''
@@ -247,26 +314,29 @@ let
     # Shows a TODO toast so a press is discoverable; swap the kanata alias for
     # the real verb when finalizing (no other restructuring needed).
     set -euo pipefail
-    tmux display-message -d 1500 "TODO: $1"
+    while IFS= read -r c; do
+      tmux display-message -t "$c" -d 1500 "TODO: $1"
+    done < <(tmux list-clients -F '#{client_name}' 2>/dev/null)
   '';
 
   # ---- reference / help -----------------------------------------------
   # megacat-help — show the full pad keymap + ops reference.
   #   * run from a terminal inside tmux  -> bat pager in this pane
   #   * fired via kanata cmd              -> tmux display-popup with bat pager
-  #                                          on the current (addressed) session
-  #   * neither (no tmux available)        -> plain cat to stdout
+  #                                          on the first attached client
+  #   * no tmux available                  -> plain cat (useful from a raw shell)
   # BOUND TO: nlck on base layer (also reachable from read/write via `_`
   # transparency — pressing nlck while holding kprt or kp+ still fires help).
-  # The helpFile path is interpolated by Nix at build time; the popup's shell
-  # inherits tmux's env so bat resolves via the user profile.
   megacat-help = mkVerb "megacat-help" ''
     set -euo pipefail
     HELP="${helpFile}"
     if [ -n "''${TMUX:-}" ]; then
       bat --no-config --style=plain --paging=auto "$HELP"
-    elif SESS=$(tmux display-message -p '#{session_name}' 2>/dev/null); then
-      tmux display-popup -t "$SESS" -E "bat --no-config --style=plain --paging=auto '$HELP'"
+      exit 0
+    fi
+    CLIENT=$(tmux list-clients -F '#{client_name}' 2>/dev/null | head -n 1) || true
+    if [ -n "$CLIENT" ]; then
+      tmux display-popup -t "$CLIENT" -E "bat --no-config --style=plain --paging=auto '$HELP'"
     else
       cat "$HELP"
     fi
@@ -418,15 +488,17 @@ in {
       };
       Service = {
         ExecStart = "${kanataPkg}/bin/kanata --cfg ${config.xdg.configFile."kanata/kanata.kbd".source}";
-        # NOTE: TMUX_TMPDIR intentionally NOT set here — leaving it unset makes
-        # kanata-spawned `tmux` calls use the default socket
-        # `/tmp/tmux-<uid>/default`, which is the same socket the interactive
-        # shell uses. Setting it to /run/user/%U would point kanata's tmux at
-        # a different server than the shell's and silently break every
-        # send-keys / display-popup. See the SOCKET GOTCHA at the top of this
-        # file.
+        # TMUX_TMPDIR MUST be set here. The interactive shell has it set (by
+        # systemd's user session) to /run/user/<uid>, so its tmux talks to a
+        # server on /run/user/<uid>/tmux-<uid>/default. Without this line,
+        # kanata-spawned tmux uses /tmp/tmux-<uid>/default — a different server
+        # than the shell's. Every switch-client / display-popup then fails
+        # with "no current client" and silently no-ops. See SOCKET GOTCHA at
+        # the top of this file. TMPDIR alone does NOT help — tmux 3.6a only
+        # honors TMUX_TMPDIR for socket location.
         Environment = [
           "XDG_RUNTIME_DIR=/run/user/%U"
+          "TMUX_TMPDIR=/run/user/%U"
           "TMPDIR=/run/user/%U"
           "PATH=%h/.nix-profile/bin:/nix/var/nix/profiles/default/bin:/usr/bin:/bin"
         ];

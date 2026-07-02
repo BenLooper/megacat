@@ -10,14 +10,19 @@ MODIFIERS (momentary; both tall right-column keys)
   kprt held  -> read layer   (lower tall key)
   kp+  held  -> write layer  (upper tall key)
 
-TARGET MODEL (v1)
-  Scripts resolve the addressed session as tmux "current session" via
-  `tmux display-message -p '#{session_name}'` and repo ops cd into
-  `#{pane_current_path}` so they hit the right repo even when fired from
-  the pad.
-  SEAM (not built in v1): a future upgrade has Base write the target name
-  to ~/.cache/megacat/target and Read/Write read that file, so the pad
-  can act on a session you are NOT currently looking at. Do not build yet.
+TARGET MODEL (v2)
+  kanata's cmd subprocess is NOT a tmux client, so there is no "current
+  session" from its vantage. Each script first resolves an attached client
+  via `tmux list-clients -F '#{client_name}' | head -n 1`, then uses that
+  client as the explicit target: switch-client -c $CLIENT -t N,
+  display-popup -t $CLIENT, display-message -t $CLIENT. Repo ops cd into
+  the resolved client's `#{pane_current_path}` so they hit the right repo
+  even when fired from the pad.
+  v2 picks the lexicographically-first attached client (single-window use).
+
+  SEAM (not built): two refinements deferred — (a) the ~/.cache/megacat/target
+  file, so Base can target a session you are NOT currently looking at; (b)
+  a non-default client picker for the multi-window case. Do not build yet.
 
 ============================================================
 BASE LAYER  (default) — the session map
