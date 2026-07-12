@@ -32,6 +32,7 @@ always roll back.
 |------|---------|
 | [Ghostty](https://ghostty.org) | GPU-accelerated terminal emulator |
 | [zsh](https://zsh.org) | Shell with autosuggestions and syntax highlighting |
+| [Starship](https://starship.rs) | Cross-shell prompt — directory, git, exit status, duration |
 | [Neovim](https://neovim.io) | Text editor (config from [Neovim-Configs](https://github.com/BenLooper/Neovim-Configs) `kathleen` branch) |
 | [tmux](https://github.com/tmux/tmux) | Terminal multiplexer — split panes, persistent sessions |
 | [fzf](https://github.com/junegunn/fzf) | Fuzzy finder (Ctrl+R history, Ctrl+T files) |
@@ -42,8 +43,39 @@ always roll back.
 | [zoxide](https://github.com/ajeetdsouza/zoxide) | Smarter `cd` — jump with `z partial-name` |
 | [direnv](https://direnv.net) | Per-project env vars (great with Nix dev shells) |
 | [jq](https://jqlang.org) | Parse and filter JSON on the command line |
-| [btop](https://github.com/aristocratos/btop) | Resource monitor |
+| [btop](https://github.com/aristocratos/btop) / [htop](https://htop.dev) | Resource monitors |
+| [lazygit](https://github.com/jesseduffield/lazygit) | Terminal UI for git |
+| [lazydocker](https://github.com/jesseduffield/lazydocker) | Terminal UI for Docker |
+| [gh](https://cli.github.com) | GitHub CLI — PRs, issues, repos from the terminal |
+| [Go](https://go.dev) / [Rust](https://rust-lang.org) / [Bun](https://bun.sh) | Language toolchains |
+| [Kanata](https://github.com/jtroo/kanata) | Key remapper for the EPOMAKER EK21 macropad (see `home/kanata.nix`) |
 | Git | Version control (configured with aliases) |
+
+Per-profile extras (added on top of the shared base):
+
+| Profile | Adds |
+|---------|------|
+| `personal` | `claude-code`, `aerc` (terminal email), Kanata macropad remap |
+| `work` | .NET SDK, Node, `uv`, Microsoft Edge, Azure artifacts credential provider |
+| `ghostty-dev` | Zig + libs (libpng, freetype, harfbuzz, libGL, fontconfig) to build Ghostty from source |
+
+---
+
+## Profiles
+
+The flake exposes three `homeConfiguration`s you can switch between:
+
+- **`personal`** — daily driver. Applied by `bootstrap.sh` by default.
+- **`work`** — adds Microsoft / .NET tooling and the Azure artifacts credential provider.
+- **`ghostty-dev`** — used inside the Ghostty devcontainer; includes Zig and the libraries needed to build Ghostty from source.
+
+Apply any of them with:
+
+```bash
+nix run home-manager/master -- switch --flake .#<profile> --impure
+```
+
+where `<profile>` is `personal`, `work`, or `ghostty-dev`.
 
 ---
 
@@ -75,8 +107,10 @@ cd ~/dotfiles
 **3. Apply** — no username editing needed, it auto-detects who you are:
 
 ```bash
-nix run home-manager/master -- switch --flake .#default --impure
+nix run home-manager/master -- switch --flake .#personal --impure
 ```
+
+(Swap `personal` for `work` or `ghostty-dev` if you want a different profile — see [Profiles](#profiles).)
 
 > **What's `--impure`?** Nix flakes evaluate in a sandbox by default and
 > can't read environment variables. `--impure` lifts that restriction so the
@@ -86,7 +120,7 @@ nix run home-manager/master -- switch --flake .#default --impure
 The first run downloads packages (~1 GB) and takes a few minutes. After that
 it's fast because everything is cached.
 
-**5. Start a new terminal.** Done.
+**4. Start a new terminal.** Done.
 
 ---
 
@@ -107,13 +141,14 @@ WSL2 is just Linux — the same config works. Ghostty is a native Linux app, so:
 
 ```bash
 dots
-# same as: home-manager switch --flake ~/dotfiles#default --impure
+# same as: home-manager switch --flake ~/dotfiles#personal --impure
+# (in the work / ghostty-dev profiles, `dots` targets that profile instead)
 ```
 
 **Add a new CLI tool:**
 
 1. Find the package name: `nix search nixpkgs <toolname>` or [search.nixos.org](https://search.nixos.org/packages)
-2. Add it to `home.packages` in `home/tools.nix`
+2. Add it to `home.packages` in `home/tools.nix` (or the relevant profile in `home/profiles/`)
 3. Run `dots`
 
 **Update all packages to latest versions:**
@@ -136,18 +171,29 @@ home-manager switch --switch-generation <number>
 
 ```
 megacat/
-├── flake.nix          # Entry point — declares all inputs and the homeConfiguration
+├── flake.nix          # Entry point — inputs + 3 homeConfigurations (personal/work/ghostty-dev)
 ├── flake.lock         # Pinned versions of all inputs (commit this file!)
 ├── README.md          # This file
 ├── scripts/
-│   └── bootstrap.sh   # Fresh-machine setup script
+│   ├── bootstrap.sh       # Fresh-machine setup script
+│   ├── attach-macropad.sh # Attach the EPOMAKER EK21 macropad
+│   └── setup-macropad.sh  # Initial macropad setup
 ├── nvim/              # Git submodule: Neovim config (BenLooper/Neovim-Configs, kathleen branch)
 └── home/
-    ├── default.nix    # Root module: username + imports everything below
-    ├── shell.nix      # zsh, fzf, aliases
-    ├── ghostty.nix    # Ghostty terminal emulator
-    ├── git.nix        # Git identity and aliases
-    ├── editor.nix     # Neovim install + config symlink
-    ├── tools.nix      # CLI packages, bat, direnv
-    └── tmux.nix       # Tmux multiplexer
+    ├── default.nix    # Root module: auto-detects username + imports everything below
+    ├── shell.nix     # zsh, fzf, aliases
+    ├── ghostty.nix   # Ghostty terminal emulator
+    ├── git.nix       # Git identity and aliases
+    ├── editor.nix    # Neovim install + config symlink
+    ├── tools.nix     # CLI packages, bat, lazygit, direnv
+    ├── tmux.nix      # Tmux multiplexer
+    ├── starship.nix  # Starship prompt
+    ├── kanata.nix    # Kanata key remapper (EPOMAKER EK21 macropad)
+    ├── kanata/       # kanata.kbd layout + help text
+    ├── pi.nix        # Pi agent package + ~/.pi/agent symlink
+    ├── pi/           # Pi agent source
+    └── profiles/
+        ├── personal.nix    # Daily driver: claude-code, aerc, kanata
+        ├── work.nix        # .NET, uv, Node, Edge, Azure cred provider
+        └── ghostty-dev.nix # Zig + libs to build Ghostty from source
 ```
