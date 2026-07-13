@@ -11,6 +11,7 @@
 
   home.packages = with pkgs; [
     # gh is in tools.nix (shared); nodejs here is for `gh copilot` extension
+    azure-cli
     azure-artifacts-credprovider
     nodejs
     dotnet-sdk

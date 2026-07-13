@@ -84,6 +84,13 @@
     # Use this for things that don't have a dedicated home-manager option.
     # ============================================================
     initContent = ''
+      # ASP.NET in WSL + Windows browser HTTPS trust:
+      # use a Windows-trusted dev cert exported to a stable path.
+      if [[ -f /mnt/c/Users/blooper/.aspnet/https/wsl-devcert.pfx ]]; then
+        export ASPNETCORE_Kestrel__Certificates__Default__Path="/mnt/c/Users/blooper/.aspnet/https/wsl-devcert.pfx"
+        export ASPNETCORE_Kestrel__Certificates__Default__Password="wsl-devcert-local"
+      fi
+
       # zoxide: a smarter `cd` that learns your most-visited directories.
       # Use `z <partial-name>` to jump anywhere. E.g. `z dots` → ~/dotfiles.
       # Install zoxide via tools.nix; this activates the zsh integration.
