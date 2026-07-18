@@ -152,6 +152,14 @@
       set -as terminal-overrides ",*:Tc"
       set -as terminal-features ",*:RGB"
 
+      # ---- OSC 52 CLIPBOARD PASSTHROUGH ---------------------
+      # Let apps inside tmux (e.g. opencode's drag-copy) write to the
+      # outer terminal's clipboard via OSC 52, and let tmux's own
+      # copy mode also use OSC 52 instead of shelling out to clip.exe.
+      set -g set-clipboard on
+      set -as terminal-features ",*:Ms"
+      set -g allow-passthrough on
+
       # ---- STATUS BAR ----------------------------------------
       set -g status-position bottom
       set -g status-style 'bg=#1e1e2e fg=#cdd6f4'   # Catppuccin Mocha colors
