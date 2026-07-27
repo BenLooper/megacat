@@ -28,5 +28,6 @@
     # Apply your dotfiles changes and reload the environment.
     # Points to the work profile so it re-applies the right config.
     dots = "home-manager switch --flake ~/dotfiles#work --impure";
+    copilot = "gh copilot";
   };
 }
