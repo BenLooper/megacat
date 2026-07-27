@@ -10,10 +10,10 @@
   mycfg.kanata.enable = true;
 
   home.packages = with pkgs; [
-    # gh is in tools.nix (shared); nodejs here is for `gh copilot` extension
+    # gh is in tools.nix (shared); pin Node to the 22.x line for CLSLiNK builds
     azure-cli
     azure-artifacts-credprovider
-    nodejs
+    nodejs_22
     dotnet-sdk
     uv
     microsoft-edge
