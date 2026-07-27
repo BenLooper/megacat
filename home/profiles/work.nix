@@ -5,15 +5,15 @@
 # Contains anything that differs between personal and work:
 # AI tools, and the `dots` alias that points back to this profile.
 # ============================================================
-{ pkgs, ... }: {
+{ pkgs, pkgsNode22, ... }: {
 
   mycfg.kanata.enable = true;
 
   home.packages = with pkgs; [
-    # gh is in tools.nix (shared); pin Node to the 22.x line for CLSLiNK builds
+    # gh is in tools.nix (shared); pin exactly Node 22.13.1 for CLSLiNK builds
     azure-cli
     azure-artifacts-credprovider
-    nodejs_22
+    (pkgsNode22.nodejs_22)
     dotnet-sdk
     uv
     microsoft-edge
