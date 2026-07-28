@@ -135,6 +135,26 @@ WSL2 is just Linux — the same config works. Ghostty is a native Linux app, so:
 
 ---
 
+## Native Windows (no WSL) track
+
+This repo also ships a Windows-native path with `chezmoi` + `winget` + `mise`.
+
+From a Windows PowerShell in this repo:
+
+```powershell
+pwsh -NoProfile -ExecutionPolicy Bypass -File .\scripts\bootstrap-windows.ps1 -Profile personal
+```
+
+For work tooling:
+
+```powershell
+pwsh -NoProfile -ExecutionPolicy Bypass -File .\scripts\bootstrap-windows.ps1 -Profile work
+```
+
+See `windows/README.md` for details and parity notes.
+
+---
+
 ## Day-to-day usage
 
 **Apply changes after editing any file:**
@@ -176,8 +196,12 @@ megacat/
 ├── README.md          # This file
 ├── scripts/
 │   ├── bootstrap.sh       # Fresh-machine setup script
+│   ├── bootstrap-windows.ps1 # Native Windows bootstrap (chezmoi + winget + mise)
 │   ├── attach-macropad.sh # Attach the EPOMAKER EK21 macropad
 │   └── setup-macropad.sh  # Initial macropad setup
+├── windows/
+│   ├── README.md          # Windows setup and parity notes
+│   └── chezmoi/           # Source state for native Windows dotfiles
 ├── nvim/              # Git submodule: Neovim config (BenLooper/Neovim-Configs, kathleen branch)
 └── home/
     ├── default.nix    # Root module: auto-detects username + imports everything below

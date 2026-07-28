@@ -1,0 +1,5 @@
+[tools]
+node = "22.13.1"
+bun = "latest"
+go = "latest"
+rust = "stable"
