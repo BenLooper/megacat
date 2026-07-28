@@ -14,10 +14,6 @@
     # Alternative: "nixos-24.11" for a stable, less-frequently-updated snapshot.
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
 
-    # Pin a dedicated nixpkgs input for Node 22.13.1 so work projects that are
-    # patch-level sensitive can stay stable without downgrading all packages.
-    nixpkgs-node22.url = "github:NixOS/nixpkgs/a9eac74572da24c4c1d670e1d69055c5603870d1";
-
     # home-manager manages your $HOME: dotfiles, packages, shell config, and more.
     # It reads your Nix declarations and creates symlinks + config files for you.
     #
@@ -38,7 +34,7 @@
   # us access to everything declared above (nixpkgs, home-manager).
   #
   # The `...` catches any other inputs Nix passes automatically (like `self`).
-  outputs = { nixpkgs, nixpkgs-node22, home-manager, ... }:
+  outputs = { nixpkgs, home-manager, ... }:
     let
       system = "x86_64-linux";
 
@@ -47,10 +43,6 @@
         config.allowUnfree = true;
       };
 
-      pkgsNode22 = import nixpkgs-node22 {
-        inherit system;
-        config.allowUnfree = true;
-      };
     in
     {
       # homeConfigurations is the standard attribute home-manager looks for.
@@ -69,7 +61,6 @@
       # $USER and $HOME. For a dotfiles repo this is a sensible trade-off.
       homeConfigurations."personal" = home-manager.lib.homeManagerConfiguration {
         inherit pkgs;
-        extraSpecialArgs = { inherit pkgsNode22; };
 
         # Our actual configuration lives in home/default.nix, which imports
         # all the individual module files.
@@ -78,14 +69,12 @@
 
       homeConfigurations."work" = home-manager.lib.homeManagerConfiguration {
         inherit pkgs;
-        extraSpecialArgs = { inherit pkgsNode22; };
 
         modules = [ ./home/default.nix ./home/profiles/work.nix ];
       };
 
       homeConfigurations."ghostty-dev" = home-manager.lib.homeManagerConfiguration {
         inherit pkgs;
-        extraSpecialArgs = { inherit pkgsNode22; };
 
         modules = [ ./home/default.nix ./home/profiles/ghostty-dev.nix ];
       };
