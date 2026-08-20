@@ -32,6 +32,13 @@
     # Make `vim` and `vi` launch neovim. Muscle memory friendly.
     vimAlias  = true;
     viAlias   = true;
+
+    # The nixpkgs neovim wrapper always emits provider-setup lua, which
+    # home-manager would otherwise write to ~/.config/nvim/init.lua —
+    # colliding with the out-of-store symlink to ~/dotfiles/nvim below.
+    # sideloadInitLua loads that provider lua via the wrapper's --cmd
+    # instead, so it never creates a managed nvim/init.lua file.
+    sideloadInitLua = true;
   };
 
   # ============================================================

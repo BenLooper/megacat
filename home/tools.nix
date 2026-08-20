@@ -63,7 +63,11 @@
     # If eza shows garbled characters instead of icons, this font is missing.
     nerd-fonts.jetbrains-mono
 
-    opencode
+    # opencode is intentionally NOT installed via nixpkgs: it's a
+    # Bun-compiled binary that repeatedly segfaults under Nix (embeds a
+    # store path to ld-linux, which breaks across glibc bumps, especially
+    # on WSL2 — see nixpkgs/anomalyco-opencode issue history). Installed
+    # instead via `bun install -g opencode-ai`; see README/bootstrap notes.
   ];
 
   # ============================================================
