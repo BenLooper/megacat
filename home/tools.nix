@@ -43,6 +43,14 @@
     devcontainer # Dev Containers CLI — create and manage dev container environments
     lazysql
 
+    # ---- CLOUD ---------------------------------------------
+    # `az` — manage Azure resources: container registry, container apps, etc.
+    # NB: if you ever DO need an az extension, it must be declared here as
+    # (azure-cli.withExtensions (with azure-cli-extensions; [ foo ])) --
+    # nixpkgs' azure-cli bundles a Python without pip, so `az extension add`
+    # can never work. containerapp is built in, so nothing extra is needed.
+    azure-cli
+
     # ---- LANGUAGES -----------------------------------------
     go        # Go toolchain: compiler, `go` CLI, gofmt, etc.
     bun       # Bun: fast JavaScript runtime, bundler, and package manager
@@ -51,6 +59,7 @@
     rustfmt   # Rust code formatter
     clippy    # Rust linter
     gcc       # C compiler (needed as linker for Rust crates with build scripts)
+    tree-sitter # tree-sitter CLI — needed by nvim-treesitter to compile parsers
 
     # ---- MISC UTILITIES ------------------------------------
     gnumake   # `make`: run Makefiles
