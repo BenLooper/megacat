@@ -11,7 +11,7 @@
 
   home.packages = with pkgs; [
     # gh is in tools.nix (shared)
-    azure-cli
+    # azure-cli is in tools.nix (shared)
     azure-artifacts-credprovider
     dotnet-sdk
     uv

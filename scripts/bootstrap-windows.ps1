@@ -56,7 +56,8 @@ $basePackages = @(
   @{ Id = "junegunn.fzf"; Label = "fzf" },
   @{ Id = "jqlang.jq"; Label = "jq" },
   @{ Id = "JesseDuffield.lazygit"; Label = "lazygit" },
-  @{ Id = "JesseDuffield.lazydocker"; Label = "lazydocker" }
+  @{ Id = "JesseDuffield.lazydocker"; Label = "lazydocker" },
+  @{ Id = "tree-sitter.tree-sitter-cli"; Label = "tree-sitter" }
 )
 
 $workPackages = @(
