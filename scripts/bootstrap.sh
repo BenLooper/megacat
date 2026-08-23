@@ -57,7 +57,17 @@ echo "[2/3] Setting up dotfiles repo..."
 if [ -d "$DOTFILES_DIR/.git" ]; then
   echo "      Found existing repo at $DOTFILES_DIR — pulling latest..."
   git -C "$DOTFILES_DIR" pull --recurse-submodules
-  git -C "$DOTFILES_DIR" submodule update --init --recursive
+
+  # Don't force nvim/ (or any submodule) to the pinned commit if you're
+  # mid-edit on it — editor.nix symlinks it live, so dots doesn't need it
+  # synced, and `submodule update` would otherwise abort the whole script
+  # by refusing to check out over local changes.
+  if git -C "$DOTFILES_DIR/nvim" diff --quiet --ignore-submodules && \
+     git -C "$DOTFILES_DIR/nvim" diff --cached --quiet --ignore-submodules; then
+    git -C "$DOTFILES_DIR" submodule update --init --recursive
+  else
+    echo "      nvim/ has local changes — leaving it alone (not syncing to the pinned commit)."
+  fi
 else
   echo "      Cloning to $DOTFILES_DIR..."
   # --recurse-submodules also clones the nvim/ submodule (Neovim config)
