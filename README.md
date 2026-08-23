@@ -167,7 +167,7 @@ Shared base (`home/default.nix` + `home/*.nix`):
 | [lazysql](https://github.com/jorgerojas26/lazysql) | `tools.nix` | Terminal DB UI |
 | [gh](https://cli.github.com) | `tools.nix` | GitHub CLI |
 | [Go](https://go.dev), [Rust](https://rust-lang.org) (`rustc` + `cargo` + `rustfmt` + `clippy`), [Bun](https://bun.sh) | `tools.nix` | Language toolchains; `gcc` as Rust linker |
-| [opencode](https://github.com/sst/opencode) | `tools.nix` | `oc` alias |
+| [opencode](https://github.com/sst/opencode) | `tools.nix` (`bunGlobalPackages`, installed/synced via bun) | Not a Nix package — segfaults under Nix on WSL2; `oc` alias, update with `bunup` |
 | `gnumake`, `tree`, `unzip`, `which` | `tools.nix` | Misc. utilities |
 | `nerd-fonts.jetbrains-mono` | `tools.nix` | Icon glyphs for eza, etc. |
 
@@ -192,6 +192,7 @@ flake" with that in mind.
 |-------|------------|
 | `dots` | `home-manager switch --flake ~/dotfiles#<this-profile> --impure` |
 | `oc` | `opencode` |
+| `bunup` | `bun update -g` — update bun-managed globals (`bunGlobalPackages` in `tools.nix`) to latest |
 | `lg` | `lazygit` |
 | `drive` | `pi --no-session --drive` |
 | `ls` | `eza --icons` |
@@ -238,8 +239,9 @@ nix run home-manager/master -- switch --flake .#personal --impure
 
 Swap `personal` for `work` or `ghostty-dev` as needed.
 
-The first run downloads packages (~1 GB) and takes a few minutes. After that
-everything is cached.
+The first run downloads packages (~1 GB) and takes a few minutes. This also
+installs bun-managed CLI tools like opencode automatically (see
+`bunGlobalPackages` in `tools.nix`) — no separate step needed.
 
 **4. Start a new terminal.** Done.
 
@@ -288,6 +290,14 @@ dots
 or [search.nixos.org](https://search.nixos.org/packages)), add it to
 `home.packages` in `home/tools.nix` (or the relevant profile in
 `home/profiles/`), run `dots`.
+
+**Add a tool that can't be a Nix package** (e.g. it segfaults under Nix, like
+opencode — see the comment in `tools.nix`): add it to `bunGlobalPackages` in
+`home/tools.nix` instead, then run `dots`. Every `dots` run installs anything
+declared there that's missing, and if you have a bun-global package installed
+that *isn't* declared, you'll be prompted to remove it — keeps the list
+honest as the actual source of truth. Versions aren't bumped automatically;
+run `bunup` when you want to update everything, same idea as `:Lazy update`.
 
 **Update all packages to latest versions:**
 

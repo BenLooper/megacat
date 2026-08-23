@@ -74,6 +74,11 @@
       oc = "opencode";
       lg = "lazygit";
 
+      # Update everything in bunGlobalPackages (tools.nix) to latest —
+      # `dots` only installs what's missing, this is the explicit bump,
+      # same idea as `:Lazy update`.
+      bunup = "bun update -g";
+
       # Pi drive mode — keyboard-driven agent interaction
       drive = "pi --no-session --drive";
     };

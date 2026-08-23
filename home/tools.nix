@@ -14,7 +14,23 @@
 # Some tools (fzf, bat, direnv) get their own `programs.*` block
 # because home-manager knows how to configure them specifically.
 # ============================================================
-{ pkgs, ... }: {
+{ lib, pkgs, ... }:
+let
+  # CLI tools installed via bun's global package manager instead of the
+  # Nix store (see the opencode comment below for why). Still declared
+  # here so `dots` keeps them installed and in sync — just via the
+  # activation script instead of a Nix derivation.
+  #
+  # On every `dots`: anything here that's missing gets installed; anything
+  # installed via bun globally that ISN'T listed here gets flagged and you
+  # get prompted to remove it. Versions of already-installed packages are
+  # left alone — run `bunup` (alias in shell.nix) when you want to update,
+  # same idea as `:Lazy update`.
+  bunGlobalPackages = [
+    "opencode-ai" # opencode: segfaults as a Nix-built binary, see below
+  ];
+in
+{
 
   home.packages = with pkgs; [
     # ---- SEARCH & NAVIGATION --------------------------------
@@ -72,12 +88,52 @@
     # If eza shows garbled characters instead of icons, this font is missing.
     nerd-fonts.jetbrains-mono
 
-    # opencode is intentionally NOT installed via nixpkgs: it's a
+    # opencode is intentionally NOT installed via nixpkgs here: it's a
     # Bun-compiled binary that repeatedly segfaults under Nix (embeds a
     # store path to ld-linux, which breaks across glibc bumps, especially
-    # on WSL2 — see nixpkgs/anomalyco-opencode issue history). Installed
-    # instead via `bun install -g opencode-ai`; see README/bootstrap notes.
+    # on WSL2 — see nixpkgs/anomalyco-opencode issue history). It's
+    # installed via bun instead — see `bunGlobalPackages` above and the
+    # activation script below.
   ];
+
+  # ============================================================
+  # BUN GLOBAL PACKAGES — installed/synced via bun, not the Nix store
+  # ============================================================
+  # Runs on every `dots`. See `bunGlobalPackages` above for what this
+  # keeps in sync and how updates work.
+  home.activation.syncBunGlobalPackages = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
+    BUN="${pkgs.bun}/bin/bun"
+    JQ="${pkgs.jq}/bin/jq"
+    GLOBAL_PKG_JSON="$HOME/.bun/install/global/package.json"
+    DECLARED="${lib.concatStringsSep " " bunGlobalPackages}"
+
+    for pkg in $DECLARED; do
+      if [ ! -f "$GLOBAL_PKG_JSON" ] || ! "$JQ" -e --arg p "$pkg" '.dependencies[$p]' "$GLOBAL_PKG_JSON" >/dev/null 2>&1; then
+        echo "  bun: installing $pkg..."
+        $DRY_RUN_CMD "$BUN" install -g "$pkg"
+      fi
+    done
+
+    if [ -f "$GLOBAL_PKG_JSON" ]; then
+      INSTALLED="$("$JQ" -r '.dependencies | keys[]' "$GLOBAL_PKG_JSON" 2>/dev/null || true)"
+      while IFS= read -r pkg; do
+        [ -z "$pkg" ] && continue
+        case " $DECLARED " in
+          *" $pkg "*) continue ;;
+        esac
+        if [ -n "''${DRY_RUN_CMD:-}" ]; then
+          echo "  bun: '$pkg' is installed but not in bunGlobalPackages (would prompt to remove)"
+        elif [ -r /dev/tty ]; then
+          read -r -p "  bun: '$pkg' isn't declared in bunGlobalPackages. Remove it? [y/N] " ans < /dev/tty
+          case "$ans" in
+            y|Y) "$BUN" remove -g "$pkg" ;;
+          esac
+        else
+          echo "  bun: '$pkg' is installed but not in bunGlobalPackages (not removing, no tty)"
+        fi
+      done <<< "$INSTALLED"
+    fi
+  '';
 
   # ============================================================
   # BAT — syntax-highlighted cat replacement

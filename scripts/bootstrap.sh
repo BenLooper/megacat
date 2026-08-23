@@ -10,6 +10,8 @@
 #   1. Installs Nix (if not already installed)
 #   2. Clones this dotfiles repo to ~/dotfiles (if not already there)
 #   3. Applies the home-manager configuration for the current user
+#      (this also installs bun-managed CLI tools like opencode — see
+#      bunGlobalPackages in home/tools.nix)
 #   4. Sets zsh as the default login shell
 #
 # No username editing required — the config auto-detects who you are.
