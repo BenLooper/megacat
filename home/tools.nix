@@ -30,7 +30,11 @@ let
     "opencode-ai" # opencode: segfaults as a Nix-built binary, see below
   ];
 
-  codemarkInstallerUrl = "https://github.com/DanielCardonaRojas/codemark/releases/latest/download/codemark-cli-installer.sh";
+  # Cargo-installed CLI tools managed similarly to bunGlobalPackages:
+  # install missing entries on `dots`, and optionally remove undeclared ones.
+  cargoGlobalPackages = [
+    "codemark-cli"
+  ];
 in
 {
 
@@ -138,13 +142,63 @@ in
   '';
 
   # ============================================================
-  # CODEMARK — install from official release script (non-nixpkgs)
+  # CARGO GLOBAL PACKAGES — installed/synced via cargo
   # ============================================================
-  home.activation.installCodemark = lib.hm.dag.entryAfter [ "syncBunGlobalPackages" ] ''
-    if ! command -v codemark >/dev/null 2>&1; then
-      echo "  codemark: installing..."
-      $DRY_RUN_CMD ${pkgs.curl}/bin/curl --proto '=https' --tlsv1.2 -LsSf ${codemarkInstallerUrl} | $DRY_RUN_CMD ${pkgs.bash}/bin/sh
-    fi
+  home.activation.syncCargoGlobalPackages = lib.hm.dag.entryAfter [ "syncBunGlobalPackages" ] ''
+    CARGO="${pkgs.cargo}/bin/cargo"
+    DECLARED="${lib.concatStringsSep " " cargoGlobalPackages}"
+
+    is_declared_pkg_installed() {
+      pkg="$1"
+      if ! "$CARGO" install --list 2>/dev/null | while IFS= read -r line; do
+        case "$line" in
+          "$pkg v"*":") exit 0 ;;
+        esac
+      done; then
+        return 1
+      fi
+      return 0
+    }
+
+    install_declared_pkg() {
+      pkg="$1"
+      case "$pkg" in
+        codemark-cli)
+          $DRY_RUN_CMD "$CARGO" install --git https://github.com/DanielCardonaRojas/codemark codemark-cli
+          ;;
+      esac
+    }
+
+    for pkg in $DECLARED; do
+      if ! is_declared_pkg_installed "$pkg"; then
+        echo "  cargo: installing $pkg..."
+        install_declared_pkg "$pkg"
+      fi
+    done
+
+    INSTALLED_RAW="$($CARGO install --list 2>/dev/null || true)"
+    while IFS= read -r line; do
+      case "$line" in
+        *" v"*":")
+          pkg="''${line%% v*}"
+          case " $DECLARED " in
+            *" $pkg "*) continue ;;
+          esac
+          if [ -n "''${DRY_RUN_CMD:-}" ]; then
+            echo "  cargo: '$pkg' is installed but not in cargoGlobalPackages (would prompt to remove)"
+          elif [ -r /dev/tty ]; then
+            read -r -p "  cargo: '$pkg' isn't declared in cargoGlobalPackages. Remove it? [y/N] " ans < /dev/tty
+            case "$ans" in
+              y|Y) "$CARGO" uninstall "$pkg" ;;
+            esac
+          else
+            echo "  cargo: '$pkg' is installed but not in cargoGlobalPackages (not removing, no tty)"
+          fi
+          ;;
+      esac
+    done <<EOF
+$INSTALLED_RAW
+EOF
   '';
 
   # ============================================================

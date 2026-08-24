@@ -66,6 +66,136 @@ $workPackages = @(
   @{ Id = "Astral-sh.uv"; Label = "uv" }
 )
 
+$bunGlobalPackages = @(
+  "opencode-ai"
+)
+
+$cargoGlobalPackages = @(
+  "codemark-cli"
+)
+
+function Test-IsInteractive {
+  try {
+    return ([Environment]::UserInteractive -and -not [Console]::IsInputRedirected)
+  } catch {
+    return $false
+  }
+}
+
+function Sync-BunGlobalPackages {
+  if (-not (Get-Command bun -ErrorAction SilentlyContinue)) {
+    Write-Warning "bun is not available on PATH; skipping bun global package sync."
+    return
+  }
+
+  $bunGlobalPackageJson = Join-Path $HOME ".bun/install/global/package.json"
+
+  foreach ($pkg in $bunGlobalPackages) {
+    $isInstalled = $false
+    if (Test-Path $bunGlobalPackageJson) {
+      try {
+        $json = Get-Content -Raw -Path $bunGlobalPackageJson | ConvertFrom-Json
+        if ($null -ne $json.dependencies -and $null -ne $json.dependencies.$pkg) {
+          $isInstalled = $true
+        }
+      } catch {
+        Write-Warning "Failed reading $bunGlobalPackageJson: $($_.Exception.Message)"
+      }
+    }
+
+    if (-not $isInstalled) {
+      Write-Host "==> bun: installing $pkg"
+      bun install -g $pkg | Out-Host
+    }
+  }
+
+  if (-not (Test-Path $bunGlobalPackageJson)) {
+    return
+  }
+
+  $installed = @()
+  try {
+    $json = Get-Content -Raw -Path $bunGlobalPackageJson | ConvertFrom-Json
+    if ($null -ne $json.dependencies) {
+      $installed = $json.dependencies.PSObject.Properties.Name
+    }
+  } catch {
+    Write-Warning "Failed reading $bunGlobalPackageJson for drift check: $($_.Exception.Message)"
+    return
+  }
+
+  $interactive = Test-IsInteractive
+  foreach ($pkg in $installed) {
+    if ($bunGlobalPackages -contains $pkg) {
+      continue
+    }
+
+    if ($interactive) {
+      $ans = Read-Host "  bun: '$pkg' isn't declared in bunGlobalPackages. Remove it? [y/N]"
+      if ($ans -match '^[Yy]$') {
+        bun remove -g $pkg | Out-Host
+      }
+    } else {
+      Write-Host "  bun: '$pkg' is installed but not in bunGlobalPackages (not removing, non-interactive)"
+    }
+  }
+}
+
+function Install-CargoGlobalPackage {
+  param(
+    [Parameter(Mandatory = $true)][string]$Package
+  )
+
+  switch ($Package) {
+    "codemark-cli" {
+      cargo install --git https://github.com/DanielCardonaRojas/codemark codemark-cli | Out-Host
+      break
+    }
+    default {
+      throw "No install mapping configured for cargo package '$Package'."
+    }
+  }
+}
+
+function Sync-CargoGlobalPackages {
+  if (-not (Get-Command cargo -ErrorAction SilentlyContinue)) {
+    Write-Warning "cargo is not available on PATH; skipping cargo global package sync. Open a new shell and re-run bootstrap after mise rust installs."
+    return
+  }
+
+  $cargoListOutput = cargo install --list 2>$null
+  $installed = @()
+  foreach ($line in $cargoListOutput) {
+    if ($line -match '^([^\s]+)\sv[^\s]+:$') {
+      $installed += $Matches[1]
+    }
+  }
+
+  foreach ($pkg in $cargoGlobalPackages) {
+    if ($installed -contains $pkg) {
+      continue
+    }
+    Write-Host "==> cargo: installing $pkg"
+    Install-CargoGlobalPackage -Package $pkg
+  }
+
+  $interactive = Test-IsInteractive
+  foreach ($pkg in $installed) {
+    if ($cargoGlobalPackages -contains $pkg) {
+      continue
+    }
+
+    if ($interactive) {
+      $ans = Read-Host "  cargo: '$pkg' isn't declared in cargoGlobalPackages. Remove it? [y/N]"
+      if ($ans -match '^[Yy]$') {
+        cargo uninstall $pkg | Out-Host
+      }
+    } else {
+      Write-Host "  cargo: '$pkg' is installed but not in cargoGlobalPackages (not removing, non-interactive)"
+    }
+  }
+}
+
 $failedPackages = New-Object System.Collections.Generic.List[string]
 
 foreach ($pkg in $basePackages) {
@@ -100,10 +230,8 @@ if (Get-Command mise -ErrorAction SilentlyContinue) {
   mise install | Out-Host
 }
 
-if (-not (Get-Command codemark -ErrorAction SilentlyContinue)) {
-  Write-Host "==> Installing codemark"
-  Invoke-RestMethod "https://github.com/DanielCardonaRojas/codemark/releases/latest/download/codemark-cli-installer.ps1" | Invoke-Expression
-}
+Sync-BunGlobalPackages
+Sync-CargoGlobalPackages
 
 Write-Host ""
 Write-Host "Windows profile '$Profile' was applied from:"

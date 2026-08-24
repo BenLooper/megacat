@@ -34,7 +34,21 @@ The following Nix-side components are intentionally not mirrored 1:1 on native W
 
 ## Codemark on Windows
 
-`scripts/bootstrap-windows.ps1` installs Codemark via the official PowerShell installer if `codemark` is not already on PATH.
+`scripts/bootstrap-windows.ps1` installs Codemark via Cargo (`cargo install --git https://github.com/DanielCardonaRojas/codemark codemark-cli`) if `codemark` is not already on PATH.
+
+## Global package sync on Windows
+
+Bootstrap now mirrors the Linux sync behavior for non-winget globals:
+
+- Bun globals are declared in `scripts/bootstrap-windows.ps1` (`$bunGlobalPackages`) and synced (install missing, prompt for undeclared).
+- Cargo globals are declared in `scripts/bootstrap-windows.ps1` (`$cargoGlobalPackages`) and synced (install missing, prompt for undeclared).
+
+To update managed globals later:
+
+```powershell
+bun update -g
+cargo install --git https://github.com/DanielCardonaRojas/codemark codemark-cli --force
+```
 
 After bootstrap, you can install the Codemark agent skill (optional):
 
