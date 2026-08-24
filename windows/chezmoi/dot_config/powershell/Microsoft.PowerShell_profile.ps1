@@ -40,3 +40,7 @@ function dots {
 if (Get-Command opencode -ErrorAction SilentlyContinue) {
   Set-Alias oc opencode
 }
+
+if (Get-Command codemark -ErrorAction SilentlyContinue) {
+  Set-Alias cm codemark
+}

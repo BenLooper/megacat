@@ -100,6 +100,11 @@ if (Get-Command mise -ErrorAction SilentlyContinue) {
   mise install | Out-Host
 }
 
+if (-not (Get-Command codemark -ErrorAction SilentlyContinue)) {
+  Write-Host "==> Installing codemark"
+  Invoke-RestMethod "https://github.com/DanielCardonaRojas/codemark/releases/latest/download/codemark-cli-installer.ps1" | Invoke-Expression
+}
+
 Write-Host ""
 Write-Host "Windows profile '$Profile' was applied from:"
 Write-Host "  $chezmoiSource"

@@ -31,3 +31,13 @@ The following Nix-side components are intentionally not mirrored 1:1 on native W
 - `aerc` and `tut`
 - `pi-coding-agent` Nix package
 - `azure-artifacts-credprovider` wiring from the Linux work profile
+
+## Codemark on Windows
+
+`scripts/bootstrap-windows.ps1` installs Codemark via the official PowerShell installer if `codemark` is not already on PATH.
+
+After bootstrap, you can install the Codemark agent skill (optional):
+
+```powershell
+codemark install-skill --agent claude --scope user
+```

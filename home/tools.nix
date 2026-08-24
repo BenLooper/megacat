@@ -29,6 +29,8 @@ let
   bunGlobalPackages = [
     "opencode-ai" # opencode: segfaults as a Nix-built binary, see below
   ];
+
+  codemarkInstallerUrl = "https://github.com/DanielCardonaRojas/codemark/releases/latest/download/codemark-cli-installer.sh";
 in
 {
 
@@ -132,6 +134,16 @@ in
           echo "  bun: '$pkg' is installed but not in bunGlobalPackages (not removing, no tty)"
         fi
       done <<< "$INSTALLED"
+    fi
+  '';
+
+  # ============================================================
+  # CODEMARK — install from official release script (non-nixpkgs)
+  # ============================================================
+  home.activation.installCodemark = lib.hm.dag.entryAfter [ "syncBunGlobalPackages" ] ''
+    if ! command -v codemark >/dev/null 2>&1; then
+      echo "  codemark: installing..."
+      $DRY_RUN_CMD ${pkgs.curl}/bin/curl --proto '=https' --tlsv1.2 -LsSf ${codemarkInstallerUrl} | $DRY_RUN_CMD ${pkgs.bash}/bin/sh
     fi
   '';
 

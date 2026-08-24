@@ -78,6 +78,7 @@
   home.sessionPath = [
     "$HOME/.local/bin"
     "$HOME/.bun/bin"
+    "$HOME/.codemark/bin"
     "$HOME/go/bin"
     "$HOME/.cargo/bin"
   ];
