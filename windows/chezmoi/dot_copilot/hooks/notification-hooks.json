@@ -1,0 +1,26 @@
+{
+  "version": 1,
+  "hooks": {
+    "agentStop": [
+      {
+        "type": "command",
+        "powershell": "& \"$env:USERPROFILE\\.local\\scripts\\agent-notify.ps1\" copilot done",
+        "timeoutSec": 5
+      }
+    ],
+    "notification": [
+      {
+        "type": "command",
+        "powershell": "& \"$env:USERPROFILE\\.local\\scripts\\agent-notify.ps1\" copilot attention",
+        "timeoutSec": 5
+      }
+    ],
+    "errorOccurred": [
+      {
+        "type": "command",
+        "powershell": "& \"$env:USERPROFILE\\.local\\scripts\\agent-notify.ps1\" copilot error",
+        "timeoutSec": 5
+      }
+    ]
+  }
+}

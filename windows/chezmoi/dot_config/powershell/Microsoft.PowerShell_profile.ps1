@@ -44,3 +44,16 @@ if (Get-Command opencode -ErrorAction SilentlyContinue) {
 if (Get-Command codemark -ErrorAction SilentlyContinue) {
   Set-Alias cm codemark
 }
+
+# tmux prefix+m analog: run a long command, get notified (bell + taskbar
+# flash + toast) when it finishes. Works for scriptblocks and commands:
+#   watch { cargo build }     watch npm install
+function watch {
+  if ($args.Count -eq 1 -and $args[0] -is [scriptblock]) {
+    & $args[0]
+  } elseif ($args.Count -gt 0) {
+    & @args
+  }
+  & powershell.exe -NoProfile -ExecutionPolicy Bypass -File `
+    "$env:USERPROFILE\.local\scripts\agent-notify.ps1" shell done
+}

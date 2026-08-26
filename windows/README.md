@@ -47,6 +47,39 @@ the file. The native CapsLock toggle is fully suppressed.
 On native Linux machines this role is played by kanata instead — see
 `home/kanata/main.kbd` and `home/kanata.nix` (`mycfg.kanata.enableMainKbd`).
 
+## Agent notifications (Claude Code / OpenCode / Copilot CLI)
+
+Windows twin of the Linux tmux setup (`home/agents-notify.nix`). No tmux
+needed — the notifier signals at the OS level, so it works in Windows
+Terminal tabs, conhost, and nvim embedded terminal buffers alike:
+
+| Linux (tmux) | Windows |
+|---|---|
+| window bell flag `!` | taskbar flash (`FlashWindowEx`) + BEL to the console buffer |
+| status-line message | Windows toast + console/WT-tab title |
+| `prefix+m` pane monitor | `watch` PowerShell function (`watch { cargo build }`) |
+
+Everything funnels into one script, `agent-notify.ps1` (applied by
+chezmoi to `%USERPROFILE%\.local\scripts\`), which always exits 0 so a
+failed notify can never break an agent hook:
+
+- `~/.claude/settings.json` — `Stop` / `Notification` hooks
+- `~/.copilot/hooks/notification-hooks.json` — `agentStop` /
+  `notification` / `errorOccurred`
+- `~/.config/opencode/plugins/agent-notify.js` — `session.idle` /
+  `permission.asked` / `session.error` events
+
+Hooks are read when the CLI starts, so changes apply on the next
+launch of each agent. Toasts run through `powershell.exe` (5.1) because
+WinRT toast projection only works there; the rest works under pwsh 7.
+
+`agent-notify.ps1 -NoToast` skips the toast (bell/flash/title only).
+
+> **First apply caveat:** chezmoi now manages `~/.claude/settings.json`.
+> If the Windows host already had one with local changes (extra plugins,
+> etc.), `chezmoi apply` will overwrite it — merge anything you want to
+> keep into `windows/chezmoi/dot_claude/settings.json` first.
+
 ## Parity notes
 
 The following Nix-side components are intentionally not mirrored 1:1 on native Windows:
