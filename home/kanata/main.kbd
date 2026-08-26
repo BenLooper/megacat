@@ -1,0 +1,56 @@
+;; home/kanata/main.kbd
+;; ============================================================
+;; Main keyboard: CapsLock dual-role for NATIVE Linux machines.
+;;
+;; WHY THIS FILE EXISTS:
+;;   On WSL2 the main keyboard is owned by Windows (see windows/README.md,
+;;   caps.ahk). But on a native Linux box the keyboard IS an evdev device,
+;;   so kanata can grab it and provide the same homerow ergonomics:
+;;
+;;     hold CapsLock -> Ctrl   (tmux prefix C-a, navigator C-h/j/k/l ...)
+;;     tap  CapsLock -> Esc    (nvim insert-mode exit)
+;;
+;; ENABLING (opt-in, per host):
+;;   mycfg.kanata.enable = true;          # master switch (already on)
+;;   mycfg.kanata.enableMainKbd = true;   # this file's service
+;;   mycfg.kanata.mainKbdPath = "/dev/input/by-id/...-event-kbd";
+;;
+;; DEVICE PATH:
+;;   Use a STABLE path, not /dev/input/eventN (N changes across replug/reboot).
+;;   Find yours with:  ls -l /dev/input/by-id/  | grep event-kbd
+;;   or:               ls -l /dev/input/by-path/
+;;   A udev symlink rule (like setup-macropad.sh creates for the pad) is the
+;;   most durable option if by-id is not stable for your board.
+;;
+;; PERMISSIONS (one-time, like the pad):
+;;   kanata needs read access to the device + write access to /dev/uinput.
+;;   The same udev rules from scripts/setup-macropad.sh cover uinput; add
+;;   your keyboard to an input-group rule or run setup-macropad equivalents.
+;;
+;; SCOPE:
+;;   Only `caps` is listed in defsrc, so every other key passes through
+;;   untouched — no layers, no cmd actions, no tmux coupling. Deliberately
+;;   boring. Runs alongside the pad's kanata service without conflict: each
+;;   instance owns its own physical device(s) via linux-dev and emits through
+;;   its own virtual uinput device, so they never fight over events.
+;;
+;; TUNING:
+;;   (tap-hold <tap-repress> <hold-timeout> tap hold)
+;;   180ms hold threshold: shorter = snappier Ctrl, higher risk of accidental
+;;   Esc->Ctrl misfires during slow typing. Their pad uses 350ms only because
+;;   reset is destructive; 180 is the sweet spot for a modifier.
+;; ============================================================
+
+(defcfg
+  linux-dev (@KBD_PATH@)
+  ;; Wait for the device instead of dying at boot (USB keyboards appear late).
+  linux-continue-if-no-devs-found yes
+  process-unmapped-keys no
+  log-layer-changes yes
+)
+
+(defsrc caps)
+
+(defalias cap (tap-hold 0 180 esc lctl))
+
+(deflayer main @cap)

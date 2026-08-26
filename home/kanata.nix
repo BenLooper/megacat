@@ -69,6 +69,16 @@
 # Enable per-profile with:  mycfg.kanata.enable = true;
 # Device identifiers (VID:PID wired/dongle, udev symlink path) are centralized
 # here as options — change them once and all scripts/configs update.
+#
+# MAIN-KEYBOARD MODE (native Linux only):
+#   The pad remaps the EK21; the MAIN keyboard needs its own instance for
+#   homerow ergonomics (hold CapsLock=Ctrl, tap=Esc) mirroring the Windows
+#   caps.ahk (see windows/README.md). Impossible under WSL2 (no raw evdev for
+#   the main board) — this is for native machines/servers you sit at.
+#     mycfg.kanata.enableMainKbd = true;               # second service
+#     mycfg.kanata.mainKbdPath = "/dev/input/by-id/…-event-kbd";
+#   Config: home/kanata/main.kbd. Runs alongside the pad service; each
+#   instance owns separate devices + virtual uinput, so they compose.
 # ============================================================
 { config, lib, pkgs, ... }:
 
@@ -466,6 +476,19 @@ in {
       default = "36b0:3002";
       description = "VID:PID of the macropad (2.4GHz dongle), used by usbipd as fallback.";
     };
+
+    enableMainKbd = lib.mkEnableOption ''
+      kanata main-keyboard remap (hold CapsLock=Ctrl, tap=Esc) for native
+      Linux machines. Requires mainKbdPath. Not usable under WSL2 — the main
+      keyboard's raw events never reach Linux there (see windows/README.md).
+    '';
+
+    mainKbdPath = lib.mkOption {
+      type = lib.types.nullOr lib.types.str;
+      default = null;
+      example = "/dev/input/by-id/usb-XXXX-event-kbd";
+      description = "Stable event-device path for the main keyboard (use /dev/input/by-id or a udev symlink — never /dev/input/eventN). Required when enableMainKbd is true.";
+    };
   };
 
   config = lib.mkIf cfg.enable {
@@ -536,5 +559,44 @@ in {
         WantedBy = [ "default.target" ];
       };
     };
+
+    # ---- MAIN KEYBOARD (opt-in): hold CapsLock=Ctrl, tap=Esc --------------
+    # Native Linux only (WSL2 can't see raw evdev for the main board). Runs
+    # alongside the pad service above; devices and virtual uinput are
+    # separate, so they compose. See home/kanata/main.kbd for the keymap.
+    warnings = lib.optional (cfg.enableMainKbd && cfg.mainKbdPath == null)
+      "mycfg.kanata.enableMainKbd is true but mainKbdPath is null — main-keyboard remapper NOT created.";
+
+    xdg.configFile."kanata/main.kbd" = lib.mkIf (cfg.enableMainKbd && cfg.mainKbdPath != null) {
+      source = pkgs.replaceVars ./kanata/main.kbd {
+        KBD_PATH = cfg.mainKbdPath;
+      };
+    };
+
+    systemd.user.services.kanata-main-kbd =
+      lib.mkIf (cfg.enableMainKbd && cfg.mainKbdPath != null) {
+        Unit = {
+          Description = "Kanata main-keyboard remap (CapsLock dual-role)";
+          After = [ "default.target" ];
+          # Same rationale as the pad service: give /dev/uinput perms time to
+          # land instead of exhausting systemd's default restart budget.
+          StartLimitIntervalSec = 600;
+          StartLimitBurst = 20;
+        };
+        Service = {
+          ExecStartPre = [
+            ''sh -c 'for i in $(seq 1 30); do [ -w /dev/uinput ] && exit 0; sleep 1; done; exit 1' ''
+          ];
+          ExecStart = "${kanataPkg}/bin/kanata --cfg ${config.xdg.configFile."kanata/main.kbd".source}";
+          # No TMUX_TMPDIR needed here: main.kbd has no cmd actions, so this
+          # instance never spawns tmux (see SOCKET GOTCHA at top of file).
+          Environment = [ "PATH=%h/.nix-profile/bin:/nix/var/nix/profiles/default/bin:/usr/bin:/bin" ];
+          Restart = "on-failure";
+          RestartSec = 2;
+        };
+        Install = {
+          WantedBy = [ "default.target" ];
+        };
+      };
   };
 }

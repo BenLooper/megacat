@@ -153,7 +153,7 @@ Shared base (`home/default.nix` + `home/*.nix`):
 | [Starship](https://starship.rs) | `starship.nix` | Prompt: directory, git, exit status, duration |
 | [Git](https://git-scm.com) | `git.nix` | Identity, aliases, `gh` credential helper, histogram diff |
 | [fzf](https://github.com/junegunn/fzf) | `shell.nix` | `Ctrl+R` history, `Ctrl+T` files, `Alt+C` cd |
-| [Kanata](https://github.com/jtroo/kanata) | `kanata.nix` | Key remapper for the EPOMAKER EK21; verbs are `writeShellApplication`s (see Path 1 above) |
+| [Kanata](https://github.com/jtroo/kanata) | `kanata.nix` | Key remapper for the EPOMAKER EK21; verbs are `writeShellApplication`s (see Path 1 above). Optional main-keyboard mode (`enableMainKbd`, native Linux only): hold CapsLock=Ctrl, tap=Esc — mirrors `windows/chezmoi/dot_local/scripts/caps.ahk` on WSL hosts |
 | [Pi coding agent](https://github.com/sst/pi) | `pi.nix` | `pi-coding-agent` package; `~/.pi/agent` symlinked into the repo for versioning; `drive` alias |
 | [ripgrep](https://github.com/BurntSushi/ripgrep), [fd](https://github.com/sharkdp/fd) | `tools.nix` | Fast search and find |
 | [eza](https://github.com/eza-community/eza) | `tools.nix` | `ls` replacement, aliased in `shell.nix` |
@@ -343,6 +343,7 @@ megacat/
     ├── ghostty.nix           # Ghostty config — NOT CURRENTLY IMPORTED (see note above)
     ├── kanata.nix            # Kanata key remapper; all verbs are writeShellApplications
     ├── kanata/               # kanata.kbd layout (three-layer tmux command surface)
+    │   └── main.kbd          # optional main-keyboard caps dual-role (native Linux)
     ├── pi.nix                # pi-coding-agent package + ~/.pi/agent symlink
     ├── pi/                   # Pi agent source (versioned, secrets gitignored)
     └── profiles/
