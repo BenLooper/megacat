@@ -1,0 +1,4 @@
+# Machine-local agent integration files (contain absolute paths;
+# code-preview hooks are installed per-project via :CodePreviewInstall*)
+.claude/settings.local.json
+.opencode/plugins/
