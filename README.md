@@ -155,6 +155,7 @@ Shared base (`home/default.nix` + `home/*.nix`):
 | [fzf](https://github.com/junegunn/fzf) | `shell.nix` | `Ctrl+R` history, `Ctrl+T` files, `Alt+C` cd |
 | [Kanata](https://github.com/jtroo/kanata) | `kanata.nix` | Key remapper for the EPOMAKER EK21; verbs are `writeShellApplication`s (see Path 1 above). Optional main-keyboard mode (`enableMainKbd`, native Linux only): hold CapsLock=Ctrl, tap=Esc — mirrors `windows/chezmoi/dot_local/scripts/caps.ahk` on WSL hosts |
 | [Pi coding agent](https://github.com/sst/pi) | `pi.nix` | `pi-coding-agent` package; `~/.pi/agent` symlinked into the repo for versioning; `drive` alias |
+| Agent → tmux notifications | `agents-notify.nix` | Claude Code / OpenCode / Copilot CLI hooks + `rickstaa/tmux-notify` (`prefix+m`) all funnel into one script: bell-flag the agent's window and flash a status-line message when a turn finishes, errors, or needs input — unless you're already looking at that pane. Also manages `~/.claude/settings.json`, `~/.copilot/hooks/`, and `~/.config/opencode/plugins/` |
 | [ripgrep](https://github.com/BurntSushi/ripgrep), [fd](https://github.com/sharkdp/fd) | `tools.nix` | Fast search and find |
 | [eza](https://github.com/eza-community/eza) | `tools.nix` | `ls` replacement, aliased in `shell.nix` |
 | [bat](https://github.com/sharkdp/bat) | `tools.nix` | `cat` replacement (Catppuccin-mocha theme) |
@@ -345,6 +346,8 @@ megacat/
     ├── kanata/               # kanata.kbd layout (three-layer tmux command surface)
     │   └── main.kbd          # optional main-keyboard caps dual-role (native Linux)
     ├── pi.nix                # pi-coding-agent package + ~/.pi/agent symlink
+    ├── agents-notify.nix     # agent -> tmux notifications + claude/opencode/copilot hook configs
+    ├── files/                # scripts deployed by the modules (tmux-agent-notify.sh)
     ├── pi/                   # Pi agent source (versioned, secrets gitignored)
     └── profiles/
         ├── personal.nix        # claude-code, aerc, tut, kanata

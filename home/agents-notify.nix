@@ -44,6 +44,9 @@ let
   # BASH_SOURCE, so it works unpatched straight from the store.
   tmux-notify = pkgs.tmuxPlugins.mkTmuxPlugin {
     pluginName = "tmux-notify";
+    # Upstream names its entry file tnotify.tmux; home-manager would
+    # otherwise look for tmux_notify.tmux and never load the plugin.
+    rtpFilePath = "tnotify.tmux";
     version = "1.6.0";
     src = pkgs.fetchFromGitHub {
       owner = "rickstaa";
@@ -82,7 +85,9 @@ in
   # Now fully managed here. Note: if Claude Code ever rewrites this
   # file itself (e.g. installing plugins via /plugin), it replaces the
   # symlink with a plain file; the next `home-manager switch` restores
-  # ours (the old copy is kept as *.pre-hm thanks to backupFileExtension).
+  # ours. The very first switch will find the existing plain file in
+  # the way — pass `-b pre-hm` so it gets moved aside automatically:
+  #   home-manager switch --flake .#personal --impure -b pre-hm
   home.file.".claude/settings.json".text = ''
     {
       "tui": "fullscreen",
