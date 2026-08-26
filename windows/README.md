@@ -80,6 +80,16 @@ WinRT toast projection only works there; the rest works under pwsh 7.
 > etc.), `chezmoi apply` will overwrite it — merge anything you want to
 > keep into `windows/chezmoi/dot_claude/settings.json` first.
 
+## Theme: Gruvbox Material on Windows Terminal
+
+Windows Terminal rewrites its own `settings.json` constantly, so it is
+*not* chezmoi-managed. Instead, `windows/wt/Gruvbox Material Dark.json`
+is the source of truth for the scheme: paste it into the `schemes` array
+of WT settings (`Ctrl+,` → "Open JSON file") and select
+**Gruvbox Material Dark** as the profile color scheme. This matches the
+gruvbox-material palette used by Neovim, starship, bat, and tmux on the
+Linux side.
+
 ## Parity notes
 
 The following Nix-side components are intentionally not mirrored 1:1 on native Windows:
