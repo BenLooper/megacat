@@ -57,7 +57,8 @@ $basePackages = @(
   @{ Id = "jqlang.jq"; Label = "jq" },
   @{ Id = "JesseDuffield.lazygit"; Label = "lazygit" },
   @{ Id = "JesseDuffield.lazydocker"; Label = "lazydocker" },
-  @{ Id = "tree-sitter.tree-sitter-cli"; Label = "tree-sitter" }
+  @{ Id = "tree-sitter.tree-sitter-cli"; Label = "tree-sitter" },
+  @{ Id = "AutoHotkey.AutoHotkey"; Label = "autohotkey-v2" }
 )
 
 $workPackages = @(
@@ -196,6 +197,36 @@ function Sync-CargoGlobalPackages {
   }
 }
 
+function Enable-CapsRemap {
+  # Wire the CapsLock dual-role script (chezmoi-applied caps.ahk) to run at
+  # login via a Startup-folder shortcut. Idempotent: recreates the shortcut
+  # on every bootstrap so the target path stays correct after moves.
+  $script = Join-Path $HOME ".local\scripts\caps.ahk"
+  if (-not (Test-Path $script)) {
+    Write-Warning "caps.ahk not found at $script (did chezmoi apply run?); skipping caps remap setup."
+    return
+  }
+
+  $ahkExe = @(
+    "$env:ProgramFiles\AutoHotkey\v2\AutoHotkey64.exe",
+    "${env:ProgramFiles(x86)}\AutoHotkey\v2\AutoHotkey32.exe"
+  ) | Where-Object { Test-Path $_ } | Select-Object -First 1
+
+  if (-not $ahkExe) {
+    Write-Warning "AutoHotkey v2 not found; skipping caps remap setup. Re-run bootstrap after AutoHotkey installs."
+    return
+  }
+
+  $startup = [Environment]::GetFolderPath("Startup")
+  $lnkPath = Join-Path $startup "caps-dual-role.lnk"
+  $wsh = New-Object -ComObject WScript.Shell
+  $lnk = $wsh.CreateShortcut($lnkPath)
+  $lnk.TargetPath = $ahkExe
+  $lnk.Arguments = "`"$script`""
+  $lnk.Save()
+  Write-Host "==> caps remap: startup shortcut written to $lnkPath"
+}
+
 $failedPackages = New-Object System.Collections.Generic.List[string]
 
 foreach ($pkg in $basePackages) {
@@ -224,6 +255,8 @@ if (-not (Get-Command chezmoi -ErrorAction SilentlyContinue)) {
 
 Write-Host "==> Applying Windows dotfiles with chezmoi ($Profile profile)"
 chezmoi init --apply --source $chezmoiSource
+
+Enable-CapsRemap
 
 if (Get-Command mise -ErrorAction SilentlyContinue) {
   Write-Host "==> Installing runtimes from mise config"
