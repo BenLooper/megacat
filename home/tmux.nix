@@ -161,11 +161,13 @@
       set -g allow-passthrough on
 
       # ---- STATUS BAR ----------------------------------------
+      # Colors match the gruvbox-material theme used in Neovim
+      # (nvim/lua/plugins/gruvbox-material.lua).
       set -g status-position bottom
-      set -g status-style 'bg=#1e1e2e fg=#cdd6f4'   # Catppuccin Mocha colors
+      set -g status-style 'bg=#282828 fg=#d4be98'    # Gruvbox Material bg/fg
       set -g status-left ' #S '                       # Session name on the left
       set -g status-right ' %H:%M  %d %b '           # Time and date on the right
-      set -g window-status-current-style 'fg=#cba6f7 bold'  # Active window in purple
+      set -g window-status-current-style 'fg=#d3869b bold'  # Active window in purple
     '';
   };
 }

@@ -41,7 +41,7 @@
       directory = {
         truncation_length = 3;
         truncate_to_repo  = false;  # don't reset count at repo root
-        style             = "bold lavender";
+        style             = "bold blue";
       };
 
       # ============================================================
@@ -89,46 +89,31 @@
       # code, green otherwise. This gives instant visual feedback.
       # ============================================================
       character = {
-        success_symbol = "[☽ ](bold mauve)";
+        success_symbol = "[☽ ](bold purple)";
         error_symbol   = "[☽ ](bold red)";
       };
 
       # ============================================================
-      # CATPPUCCIN MOCHA PALETTE
-      # Defines named colours that match the Catppuccin Mocha theme
-      # already used by bat (tools.nix) and Ghostty (ghostty.nix).
-      # Modules above reference these names (e.g. "bold lavender").
+      # GRUVBOX MATERIAL PALETTE
+      # Defines named colours that match the gruvbox-material theme
+      # used in Neovim (nvim/lua/plugins/gruvbox-material.lua), and
+      # now also Ghostty (ghostty.nix), tmux (tmux.nix), and bat
+      # (tools.nix). Modules above reference these names
+      # (e.g. "bold blue", "bold purple").
       # ============================================================
-      palettes.mocha = {
-        rosewater = "#f5e0dc";
-        flamingo  = "#f2cdcd";
-        pink      = "#f5c2e7";
-        mauve     = "#cba6f7";
-        red       = "#f38ba8";
-        maroon    = "#eba0ac";
-        peach     = "#fab387";
-        yellow    = "#f9e2af";
-        green     = "#a6e3a1";
-        teal      = "#94e2d5";
-        sky       = "#89dceb";
-        sapphire  = "#74c7ec";
-        blue      = "#89b4fa";
-        lavender  = "#b4befe";
-        text      = "#cdd6f4";
-        subtext1  = "#bac2de";
-        subtext0  = "#a6adc8";
-        overlay2  = "#9399b2";
-        overlay1  = "#7f849c";
-        overlay0  = "#6c7086";
-        surface2  = "#585b70";
-        surface1  = "#45475a";
-        surface0  = "#313244";
-        base      = "#1e1e2e";
-        mantle    = "#181825";
-        crust     = "#11111b";
+      palettes.gruvbox_material = {
+        bg     = "#282828";
+        fg     = "#d4be98";
+        grey   = "#7c6f64";
+        red    = "#ea6962";
+        yellow = "#d8a657";
+        green  = "#a9b665";
+        aqua   = "#89b482";
+        blue   = "#7daea3";
+        purple = "#d3869b";
       };
 
-      palette = "mocha";
+      palette = "gruvbox_material";
     };
   };
 }

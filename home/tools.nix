@@ -210,7 +210,10 @@ EOF
   programs.bat = {
     enable = true;
     config = {
-      theme = "Catppuccin-mocha";  # Matches the Ghostty theme
+      # bat doesn't ship a "gruvbox-material" variant, so classic
+      # gruvbox-dark is the closest built-in match to the Neovim/Ghostty
+      # theme (nvim/lua/plugins/gruvbox-material.lua).
+      theme = "gruvbox-dark";
       # Show line numbers, git change markers, and a filename header
       style = "numbers,changes,header";
     };

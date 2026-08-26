@@ -51,11 +51,12 @@
 
       # ============================================================
       # THEME / COLORS
-      # Catppuccin Mocha is a warm, dark color scheme that works well
-      # with Neovim and most terminal tools. Ghostty ships with it built in.
-      # Other built-in options: "catppuccin-latte", "nord", "gruvbox-dark"
+      # Matches the gruvbox-material colorscheme used in Neovim
+      # (nvim/lua/plugins/gruvbox-material.lua). Ghostty ships this
+      # theme built in. Other built-in options: "catppuccin-mocha",
+      # "nord", "gruvbox-dark"
       # ============================================================
-      theme = "catppuccin-mocha";
+      theme = "Gruvbox Material Dark";
 
       # ============================================================
       # WINDOW
