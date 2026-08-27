@@ -15,10 +15,24 @@
         "timeoutSec": 5
       }
     ],
+    "permissionRequest": [
+      {
+        "type": "command",
+        "powershell": "& \"$env:USERPROFILE\\.local\\scripts\\agent-notify.ps1\" copilot attention -NoTitle",
+        "timeoutSec": 5
+      }
+    ],
     "errorOccurred": [
       {
         "type": "command",
         "powershell": "& \"$env:USERPROFILE\\.local\\scripts\\agent-notify.ps1\" copilot error",
+        "timeoutSec": 5
+      }
+    ],
+    "sessionEnd": [
+      {
+        "type": "command",
+        "powershell": "& \"$env:USERPROFILE\\.local\\scripts\\agent-notify.ps1\" copilot stopped",
         "timeoutSec": 5
       }
     ]

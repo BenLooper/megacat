@@ -4,16 +4,12 @@
 # OpenCode, GitHub Copilot CLI). Their hook systems call it when a
 # turn finishes, an error occurs, or input is needed, and it:
 #
-#   1. Writes BEL straight to the console buffer (CONOUT$) so it
-#      survives any stdout pipe the hook is captured through —
-#      Windows Terminal / conhost flag the tab and beep.
-#   2. Flashes the taskbar via FlashWindowEx (the closest analog to
+#   1. Flashes the taskbar via FlashWindowEx (the closest analog to
 #      tmux's window "!" flag — visible when the window is buried).
-#   3. Fires a Windows toast — the reliable "you're not looking at
-#      it" signal, and the only one that reaches agents running in
-#      nvim embedded terminals, where BEL/flash can't.
-#   4. Sets the console title so the message shows on a WT tab.
-#   5. Beeps via the sound API when there's no console window at all.
+#   2. Fires a Windows toast — the reliable "you're not looking at
+#      it" signal, including for agents running in nvim embedded
+#      terminals where taskbar flash may not be visible.
+#   3. Sets the terminal title so the message shows on a WT tab.
 #
 # Usage: agent-notify.ps1 <agent> <kind> [-NoToast]
 #   agent: claude | opencode | copilot | shell (any label, really)
@@ -28,7 +24,8 @@
 param(
   [string]$Agent = "agent",
   [string]$Kind = "done",
-  [switch]$NoToast
+  [switch]$NoToast,
+  [switch]$NoTitle
 )
 
 $ErrorActionPreference = "SilentlyContinue"
@@ -37,23 +34,39 @@ $ErrorActionPreference = "SilentlyContinue"
 # Agents pipe a JSON event payload we don't parse; drain it so the
 # writer never blocks on a full pipe. Only when redirected (a manual
 # interactive run must not hang waiting for EOF).
-try {
-  if ([Console]::IsInputRedirected) { $null = [Console]::In.ReadToEnd() }
-} catch { }
+try
+{
+  if ([Console]::IsInputRedirected)
+  { $null = [Console]::In.ReadToEnd() 
+  }
+} catch
+{ 
+}
 
 # --- Message ---------------------------------------------------------
-switch ($Kind) {
-  "done" { $icon = [char]0x2713; $verb = "finished" }      # check
-  "attention" { $icon = "?"; $verb = "needs input" }
-  "error" { $icon = [char]0x2717; $verb = "errored" }      # ballot X
-  default { $icon = [char]0x2022; $verb = $Kind }          # bullet
+switch ($Kind)
+{
+  "done"
+  { $icon = [char]0x2713; $verb = "finished" 
+  }      # check
+  "attention"
+  { $icon = "?"; $verb = "needs input" 
+  }
+  "error"
+  { $icon = [char]0x2717; $verb = "errored" 
+  }      # ballot X
+  default
+  { $icon = [char]0x2022; $verb = $Kind 
+  }          # bullet
 }
 $label = Split-Path -Leaf (Get-Location)
-$message = "$icon $Agent $verb - $label"
+$message = "[!] $icon $Agent $verb - $label"
 
 # --- Win32 helpers ---------------------------------------------------
-try {
-  if (-not ("Win32Notify" -as [type])) {
+try
+{
+  if (-not ("Win32Notify" -as [type]))
+  {
     Add-Type -TypeDefinition @"
 using System;
 using System.Runtime.InteropServices;
@@ -67,35 +80,19 @@ public static class Win32Notify {
   public static extern bool FlashWindowEx(ref FLASHWINFO pfwi);
   [DllImport("kernel32.dll")]
   public static extern IntPtr GetConsoleWindow();
-  [DllImport("kernel32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
-  public static extern IntPtr CreateFileW(string name, uint access, uint share,
-    IntPtr security, uint disposition, uint flags, IntPtr template);
-  [DllImport("kernel32.dll", SetLastError = true)]
-  public static extern bool WriteFile(IntPtr handle, byte[] bytes, uint count,
-    out uint written, IntPtr overlapped);
-  [DllImport("kernel32.dll", SetLastError = true)]
-  public static extern bool CloseHandle(IntPtr handle);
 }
 "@
   }
-} catch { }
+} catch
+{ 
+}
 
-# --- 1. BEL into the console output buffer ---------------------------
-try {
-  $h = [Win32Notify]::CreateFileW("CONOUT$", 0xC0000000, 3,
-    [IntPtr]::Zero, 3, 0, [IntPtr]::Zero)   # GENERIC_READ|WRITE, share all, OPEN_EXISTING
-  if ($h -ne [IntPtr]::Zero) {
-    $bytes = [System.Text.Encoding]::ASCII.GetBytes([string][char]7)
-    $written = 0
-    [void][Win32Notify]::WriteFile($h, $bytes, $bytes.Length, [ref]$written, [IntPtr]::Zero)
-    [void][Win32Notify]::CloseHandle($h)
-  }
-} catch { }
-
-# --- 2. Taskbar flash --------------------------------------------------
-try {
+# --- 1. Taskbar flash --------------------------------------------------
+try
+{
   $hwnd = [Win32Notify]::GetConsoleWindow()
-  if ($hwnd -ne [IntPtr]::Zero) {
+  if ($hwnd -ne [IntPtr]::Zero)
+  {
     $fi = New-Object Win32Notify+FLASHWINFO
     $fi.cbSize = [uint32][System.Runtime.InteropServices.Marshal]::SizeOf($fi)
     $fi.hwnd = $hwnd
@@ -103,19 +100,19 @@ try {
     $fi.uCount = 6    # finite: ~3 seconds of flashing
     $fi.dwTimeout = 0
     [void][Win32Notify]::FlashWindowEx([ref]$fi)
-  } else {
-    # No console window (fully headless / nested pty) — BEL has nowhere
-    # to land, so use the sound API directly.
-    [void][Console]::Beep(830, 180)
   }
-} catch { }
+} catch
+{ 
+}
 
-# --- 3. Toast ----------------------------------------------------------
+# --- 2. Toast ----------------------------------------------------------
 # WinRT projection works in Windows PowerShell 5.1 without any modules.
 # The AppId points at powershell.exe's Start Menu entry so Windows
 # accepts the notification from an unregistered "app".
-if (-not $NoToast) {
-  try {
+if (-not $NoToast)
+{
+  try
+  {
     $appId = "{1AC14E77-02E7-4E5D-B744-2EB1AE5198B7}\WindowsPowerShell\v1.0\powershell.exe"
     [void][Windows.UI.Notifications.ToastNotificationManager, Windows.UI.Notifications, ContentType = WindowsRuntime]
     [void][Windows.Data.Xml.Dom.XmlDocument, Windows.Data.Xml.Dom.XmlDocument, ContentType = WindowsRuntime]
@@ -125,10 +122,24 @@ if (-not $NoToast) {
 
     $toast = New-Object Windows.UI.Notifications.ToastNotification($xml)
     [Windows.UI.Notifications.ToastNotificationManager]::CreateToastNotifier($appId).Show($toast)
-  } catch { }
+  } catch
+  { 
+  }
 }
 
-# --- 4. Console title (WT tab / conhost title bar) ---------------------
-try { $Host.UI.RawUI.WindowTitle = $message } catch { }
+# --- 3. Terminal title (WT tab / conhost title bar) --------------------
+# Emit OSC 0 directly because this script runs as a child process; changing
+# the child PowerShell host title does not reliably update its parent tab.
+if (-not $NoTitle)
+{
+  try
+  {
+    $esc = [char]27
+    $bel = [char]7
+    [Console]::Write("$esc]0;$message$bel")
+  } catch
+  { 
+  }
+}
 
 exit 0

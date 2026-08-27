@@ -45,7 +45,7 @@ if (Get-Command codemark -ErrorAction SilentlyContinue) {
   Set-Alias cm codemark
 }
 
-# tmux prefix+m analog: run a long command, get notified (bell + taskbar
+# tmux prefix+m analog: run a long command, get notified (taskbar
 # flash + toast) when it finishes. Works for scriptblocks and commands:
 #   watch { cargo build }     watch npm install
 function watch {

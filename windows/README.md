@@ -55,7 +55,7 @@ Terminal tabs, conhost, and nvim embedded terminal buffers alike:
 
 | Linux (tmux) | Windows |
 |---|---|
-| window bell flag `!` | taskbar flash (`FlashWindowEx`) + BEL to the console buffer |
+| status-line message | `[!]` marker in the Windows Terminal tab title + taskbar flash (`FlashWindowEx`) |
 | status-line message | Windows toast + console/WT-tab title |
 | `prefix+m` pane monitor | `watch` PowerShell function (`watch { cargo build }`) |
 
@@ -65,7 +65,7 @@ failed notify can never break an agent hook:
 
 - `~/.claude/settings.json` — `Stop` / `Notification` hooks
 - `~/.copilot/hooks/notification-hooks.json` — `agentStop` /
-  `notification` / `errorOccurred`
+  `notification` / `permissionRequest` / `errorOccurred` / `sessionEnd`
 - `~/.config/opencode/plugins/agent-notify.js` — `session.idle` /
   `permission.asked` / `session.error` events
 
@@ -73,7 +73,8 @@ Hooks are read when the CLI starts, so changes apply on the next
 launch of each agent. Toasts run through `powershell.exe` (5.1) because
 WinRT toast projection only works there; the rest works under pwsh 7.
 
-`agent-notify.ps1 -NoToast` skips the toast (bell/flash/title only).
+`agent-notify.ps1 -NoToast` skips the toast (flash/title only). Notifications
+prefix the tab title with `[!]` so the event remains visible after the flash.
 
 > **First apply caveat:** chezmoi now manages `~/.claude/settings.json`.
 > If the Windows host already had one with local changes (extra plugins,

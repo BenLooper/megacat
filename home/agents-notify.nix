@@ -7,8 +7,6 @@
 # CLIs (Claude Code, OpenCode, GitHub Copilot CLI) into tmux so that
 # every agent event shows up as:
 #
-#   - a bell on the agent's pane  -> window gets flagged (!) and your
-#     terminal beeps / flashes its taskbar entry
 #   - a transient status-line message ("✓ opencode finished — dotfiles")
 #
 # ...unless you are already looking at that exact pane, in which case
@@ -30,7 +28,7 @@
 # builds, test runs, remote shells. It detects "finished" heuristically
 # (pane bottom line ends with a shell-prompt suffix), and we point its
 # @tnotify-custom-cmd back at our script so generic commands produce
-# the same bell + status message as agents do.
+# the same status message as agents do.
 # ============================================================
 { pkgs, ... }:
 let
@@ -73,7 +71,7 @@ in
         # $/#/%; we add ☽ because starship draws that as our prompt char.
         set -g @tnotify-prompt-suffixes '$,#,%,☽'
         # Upstream defaults this to a demo script on someone's Desktop;
-        # override so completions reuse OUR notifier (bell + status line).
+        # override so completions reuse OUR notifier (status line).
         set -g @tnotify-custom-cmd '${notifyCmd} shell done'
       '';
     }
@@ -162,10 +160,24 @@ in
             "timeoutSec": 5
           }
         ],
+        "permissionRequest": [
+          {
+            "type": "command",
+            "bash": "${notifyCmd} copilot attention",
+            "timeoutSec": 5
+          }
+        ],
         "errorOccurred": [
           {
             "type": "command",
             "bash": "${notifyCmd} copilot error",
+            "timeoutSec": 5
+          }
+        ],
+        "sessionEnd": [
+          {
+            "type": "command",
+            "bash": "${notifyCmd} copilot stopped",
             "timeoutSec": 5
           }
         ]
