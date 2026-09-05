@@ -16,6 +16,12 @@
 #     dot_wslconfig is the source of truth)
 #   - a Windows firewall rule allowing inbound :22
 #
+# AUTH: key-based. Termius generates the keypair on the phone
+# (Keychain -> Generate key) so the private key never leaves it;
+# its public key gets appended to ~/.ssh/authorized_keys. Password
+# auth stays on as the fallback until key login is confirmed — the
+# hardening command is printed at the end, run it manually then.
+#
 # Usage:
 #   setup-wsl-ssh
 #
@@ -64,11 +70,37 @@ else
   exit 1
 fi
 
-PASS_AUTH="$(sudo sshd -T 2>/dev/null | grep -i '^passwordauthentication' || true)"
-if [[ "$PASS_AUTH" == *no* ]]; then
-  echo "NOTE: PasswordAuthentication is disabled — set up SSH keys in Termius."
+SSH_DIR="$HOME/.ssh"
+AUTH_KEYS="$SSH_DIR/authorized_keys"
+
+mkdir -p "$SSH_DIR"
+chmod 700 "$SSH_DIR"
+touch "$AUTH_KEYS"
+chmod 600 "$AUTH_KEYS"
+
+if [[ -s "$AUTH_KEYS" ]]; then
+  echo "authorized_keys present ($(grep -c . "$AUTH_KEYS") key(s))."
 else
-  echo "Password auth: enabled (Termius can use your WSL password)."
+  echo "NOTE: ~/.ssh/authorized_keys is empty."
+  echo "      In Termius: Keychain -> Generate key, then append the"
+  echo "      public key to $AUTH_KEYS. Password auth stays on as the"
+  echo "      fallback until key login is confirmed."
+fi
+
+echo ""
+PASS_AUTH="$(sudo sshd -T 2>/dev/null | grep -i '^passwordauthentication' || true)"
+
+if [[ "$PASS_AUTH" == *no* ]]; then
+  echo "Password auth: disabled — key login required."
+else
+  echo "Password auth: enabled (fallback while keys are being set up)."
+  if [[ -s "$AUTH_KEYS" ]]; then
+    echo ""
+    echo "Keys are present — once key login from Termius is confirmed,"
+    echo "close the password door with:"
+    echo "  echo 'PasswordAuthentication no' | sudo tee /etc/ssh/sshd_config.d/99-no-password.conf"
+    echo "  sudo systemctl restart ssh"
+  fi
 fi
 
 echo ""
@@ -78,8 +110,10 @@ echo ""
 echo "  sshd now starts automatically at every WSL boot."
 echo ""
 echo "  Termius on iPhone:"
-echo "    host: $(hostname -I | awk '{print $1}')  (the PC's LAN IP, mirrored mode)"
-echo "    port: 22     user: $(whoami)"
+echo "    host: the PC's LAN IP — 'ip -brief addr' and pick the one"
+echo "          on the same subnet as your phone (VPN adapters get"
+echo "          mirrored too, ignore those)"
+echo "    port: 22     user: $(whoami)     key: from Termius Keychain"
 echo ""
 echo "  WSL stops ~1 min after your last terminal closes —"
 echo "  Termius connects while a terminal is open."
