@@ -93,6 +93,32 @@ export HOME="$(eval echo ~"$USER")"
 nix run home-manager/master -- switch --flake ".#personal" --impure
 
 # ============================================================
+# STEP 2.5: The knowledge vault
+# ============================================================
+# Personal knowledge base for coding agents — a private git repo of
+# markdown at ~/vault that agents read from and write back to (see
+# vault-template/README.md). home-manager (via home/vault.nix) already
+# pointed opencode + claude at it; this step makes the vault itself
+# exist. The profile above is always "personal" on machines this
+# script bootstraps, so no profile gating is needed here.
+#
+# VAULT_REMOTE: set once the private remote exists; bootstrap then
+# CLONES it (carrying all compiled knowledge) instead of creating a
+# fresh template instance.
+VAULT_REMOTE="https://github.com/BenLooper/vault.git"
+
+if [ -d "$HOME/vault/.git" ]; then
+  echo "      ~/vault already exists — leaving it alone."
+elif [ -n "$VAULT_REMOTE" ]; then
+  echo "      Cloning the knowledge vault from $VAULT_REMOTE..."
+  git clone "$VAULT_REMOTE" "$HOME/vault"
+else
+  echo "      Creating ~/vault from template (fresh instance — push it to a PRIVATE remote)"
+  cp -r "$DOTFILES_DIR/vault-template" "$HOME/vault"
+  git -C "$HOME/vault" init -q
+fi
+
+# ============================================================
 # STEP 3: Set zsh as default shell
 # ============================================================
 ZSH_PATH="$HOME/.nix-profile/bin/zsh"

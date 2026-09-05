@@ -189,6 +189,11 @@ let
   '';
 in
 {
+  # The personal knowledge vault wiring (global agent pointers + the
+  # librarian skill). Personal profile only — the vault's contents must
+  # never land on employer hardware. See home/vault.nix.
+  imports = [ ../vault.nix ];
+
   mycfg.kanata.enable = true;
 
   home.packages = with pkgs; [

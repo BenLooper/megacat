@@ -258,6 +258,53 @@ chezmoi init --apply --source $chezmoiSource
 
 Enable-CapsRemap
 
+# ============================================================
+# The vault (personal profile only)
+#
+# Personal knowledge base for coding agents — a private git repo of
+# markdown at ~/vault that agents read from and write back to. See
+# vault-template/README.md in this repo. This step is gated on the
+# personal profile (career notes and project state must never land
+# on employer hardware), which is why it's NOT chezmoi-managed: the
+# chezmoi source here applies identically to both profiles.
+#
+# VAULT_REMOTE: set below once the private remote exists; bootstrap
+# then CLONES (carrying all compiled knowledge) instead of creating
+# a fresh template instance.
+# ============================================================
+$VaultRemote = "https://github.com/BenLooper/vault.git"
+
+if ($Profile -eq "personal") {
+  $vaultDir = Join-Path $HOME "vault"
+
+  if (-not (Test-Path $vaultDir)) {
+    if ($VaultRemote -ne "") {
+      Write-Host "==> Cloning the knowledge vault from $VaultRemote"
+      git clone $VaultRemote $vaultDir
+    } else {
+      Write-Host "==> Creating ~/vault from template (fresh instance — push it to a PRIVATE remote)"
+      Copy-Item -Recurse (Join-Path $repoRoot "vault-template") $vaultDir
+      git -C $vaultDir init | Out-Null
+    }
+  }
+
+  # Global agent pointers (OpenCode + Claude Code) + the librarian
+  # skill. Byte-identical to the nix-deployed versions on Linux
+  # (home/vault.nix); same sources, so they stay in sync via git.
+  $pointerSrc = Join-Path $repoRoot "home/files/vault-pointer.md"
+  $librarianSrc = Join-Path $repoRoot "home/files/skills/librarian/SKILL.md"
+
+  $opencodeDir = Join-Path $HOME ".config/opencode"
+  $claudeDir = Join-Path $HOME ".claude"
+  New-Item -ItemType Directory -Force -Path (Join-Path $opencodeDir "skills/librarian"),
+    (Join-Path $claudeDir "skills/librarian") | Out-Null
+  Copy-Item $pointerSrc (Join-Path $opencodeDir "AGENTS.md") -Force
+  Copy-Item $pointerSrc (Join-Path $claudeDir "CLAUDE.md") -Force
+  Copy-Item $librarianSrc (Join-Path $opencodeDir "skills/librarian/SKILL.md") -Force
+  Copy-Item $librarianSrc (Join-Path $claudeDir "skills/librarian/SKILL.md") -Force
+  Write-Host "==> Vault wiring applied to opencode + claude (personal profile)"
+}
+
 if (Get-Command mise -ErrorAction SilentlyContinue) {
   Write-Host "==> Installing runtimes from mise config"
   mise install | Out-Host

@@ -20,6 +20,7 @@
     ./starship.nix  # Starship: prompt (directory, git, exit status, duration)
     ./kanata.nix    # Kanata: key remapper for EPOMAKER EK21 macropad
     ./agents-notify.nix  # AI agent -> tmux notifications (claude/opencode/copilot)
+    ./agent-skills.nix   # Agent skills, all profiles: dojo (coach mode)
 
   ];
 

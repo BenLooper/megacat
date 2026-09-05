@@ -279,6 +279,54 @@ provider — none of these are mirrored on native Windows).
 
 ---
 
+## The vault — agent knowledge base
+
+A compile-not-retrieve wiki ([Karpathy, Apr 2026](
+https://gist.github.com/karpathy/442a6bf555914893e9891c11519de94f))
+that gives every coding agent (opencode, claude code, anything with file
+access) shared, persistent knowledge across sessions and projects.
+
+**Split:** the *system* lives here (public, versioned with everything
+else); the *content* lives in `~/vault` — a **private** git repo (career
+notes, project state, personal writing; it must only ever be pushed to a
+private remote).
+
+```
+~/vault/                  PRIVATE repo, created by bootstrap
+├── AGENTS.md             schema: how agents read/write the vault
+├── raw/                  immutable inbox — sources land here, never edited
+└── wiki/
+    ├── index.md          the hub — every session starts here
+    ├── projects/         one page per project (state, decisions, open questions)
+    └── topics/           cross-project knowledge (research, patterns)
+
+megacat/                  PUBLIC — the system
+├── vault-template/       the skeleton bootstrap instantiates ~/vault from
+├── home/vault.nix        personal profile: global agent pointers + librarian skill
+├── home/agent-skills.nix all profiles: dojo skill (coach mode)
+└── home/files/
+    ├── vault-pointer.md  instruction text both agents get globally
+    └── skills/           librarian + dojo (Agent Skills format)
+```
+
+How it reaches the agents (personal machines): `home/vault.nix` writes
+`~/.config/opencode/AGENTS.md` and `~/.claude/CLAUDE.md` (identical
+pointers: read `wiki/index.md` when a task touches other projects or past
+decisions; write durable knowledge back per the schema) and installs the
+`librarian` skill into both. The `dojo` skill (keyboard split + explain-back
+gate — the interaction patterns that preserved mastery in the Anthropic
+Jan 2026 RCT) deploys to **all** profiles via `home/agent-skills.nix`,
+including the Windows track via chezmoi. On Windows, the vault wiring is
+a `-Profile personal` step in `bootstrap-windows.ps1` (the chezmoi source
+is profile-blind).
+
+Fresh machine: `bootstrap.sh` (or the Windows equivalent) creates
+`~/vault` from the template — or clones it, if `VAULT_REMOTE` is set at
+the top of the bootstrap script. **Once the private remote exists, set
+that variable.**
+
+---
+
 ## Day-to-day usage
 
 **Apply changes after editing any file:**
@@ -332,6 +380,7 @@ megacat/
 ├── windows/
 │   ├── README.md              # Windows track details + parity notes
 │   └── chezmoi/               # Source state for native Windows dotfiles
+├── vault-template/         # Skeleton for ~/vault (private knowledge repo)
 ├── nvim/                  # Git submodule → BenLooper/Neovim-Configs (kathleen branch)
 └── home/
     ├── default.nix            # Root module: auto-detects username + imports everything below
@@ -347,10 +396,12 @@ megacat/
     │   └── main.kbd          # optional main-keyboard caps dual-role (native Linux)
     ├── pi.nix                # pi-coding-agent package + ~/.pi/agent symlink
     ├── agents-notify.nix     # agent -> tmux notifications + claude/opencode/copilot hook configs
-    ├── files/                # scripts deployed by the modules (tmux-agent-notify.sh)
+    ├── agent-skills.nix      # agent skills, all profiles (dojo: coach mode)
+    ├── vault.nix             # knowledge-vault wiring, personal profile (pointers + librarian)
+    ├── files/                # scripts + skills + vault pointer (deployed by the modules)
     ├── pi/                   # Pi agent source (versioned, secrets gitignored)
     └── profiles/
-        ├── personal.nix        # claude-code, aerc, tut, kanata
+        ├── personal.nix        # claude-code, aerc, tut, kanata + vault wiring
         ├── work.nix           # .NET, uv, Node (NVM), Edge, Azure cred provider, kanata
         └── ghostty-dev.nix     # Zig + libs to build Ghostty from source
 ```
