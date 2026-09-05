@@ -74,6 +74,10 @@
       oc = "opencode";
       lg = "lazygit";
 
+      # One-time WSL fix: creates /run/user/<uid> at every boot via
+      # systemd linger. See scripts/setup-wsl-linger.sh.
+      setup-wsl-linger = "bash ~/dotfiles/scripts/setup-wsl-linger.sh";
+
       # Update everything in bunGlobalPackages (tools.nix) to latest —
       # `dots` only installs what's missing, this is the explicit bump,
       # same idea as `:Lazy update`.
@@ -89,6 +93,17 @@
     # Use this for things that don't have a dedicated home-manager option.
     # ============================================================
     initContent = ''
+      # WSL2 + systemd: shell sessions don't register with logind, so
+      # /run/user/<uid> is never created on boot while $XDG_RUNTIME_DIR
+      # still points at it. fzf-lua (serverstart at load), tmux, and
+      # ssh-agent all place sockets there and break. Fall back to a
+      # writable dir. Proper fix: run `setup-wsl-linger` once.
+      if [[ -n "$WSL_DISTRO_NAME" && -n "$XDG_RUNTIME_DIR" && ! -d "$XDG_RUNTIME_DIR" ]]; then
+        export XDG_RUNTIME_DIR="''${XDG_CACHE_HOME:-$HOME/.cache}/xdg-runtime"
+        mkdir -p "$XDG_RUNTIME_DIR"
+        chmod 700 "$XDG_RUNTIME_DIR"
+      fi
+
       # ASP.NET in WSL + Windows browser HTTPS trust:
       # use a Windows-trusted dev cert exported to a stable path.
       if [[ -f /mnt/c/Users/blooper/.aspnet/https/wsl-devcert.pfx ]]; then
