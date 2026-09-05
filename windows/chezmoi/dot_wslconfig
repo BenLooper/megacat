@@ -1,0 +1,35 @@
+# WSL2 VM settings. Applies to ALL distros.
+# Takes effect only after `wsl --shutdown` from PowerShell.
+#
+# Written 2026-08-20 after a crash caused by the Windows host disk filling up:
+# WSL could not write to its swap device, silently booted with zero swap, and
+# under memory pressure the kernel was forced to evict running programs' code
+# pages and re-read them from failing storage. That surfaced as a SIGBUS in
+# Bun and EIO reading unrelated binaries, then an unclean shutdown that left
+# zero-length files and empty git objects behind.
+
+[wsl2]
+
+# Share the host's network stack instead of NAT so LAN devices (Termius on
+# iPhone) can reach WSL services directly — sshd on :22, started by
+# scripts/setup-wsl-ssh.sh. Without this, WSL lives on an unreachable virtual
+# IP and LAN SSH can't work. Requires Windows 11 22H2+.
+networkingMode=mirrored
+
+# Cap the VM below the host's 8GB so Windows keeps breathing room.
+# Without this, WSL defaults to ~50% of host RAM.
+memory=6GB
+
+# Deliberately modest. Swap lives on C:, which was 94% full when this was
+# written -- a larger swap file would recreate the disk pressure that caused
+# the original failure. Raise it once C: has real headroom.
+swap=4GB
+
+# Leave a core for Windows.
+processors=6
+
+# Return freed disk blocks to Windows instead of growing forever. Without
+# this the ext4 VHDX is grow-only: deleting 10GB inside WSL reclaims nothing
+# on the host. Also run once per distro:
+#   wsl --manage <distro> --set-sparse true
+sparseVhd=true
