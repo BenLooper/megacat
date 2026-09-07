@@ -30,6 +30,24 @@ Two jobs, in order of frequency:
   repositories, never push it anywhere but its own private remote, never
   quote it into commit messages or public channels.
 
+## Private twins (`*.private.md`)
+
+Any page or raw doc may have a **private twin**: the same name plus
+`.private.md` (`job-search.md` / `job-search.private.md`). Twins are
+machine-local: gitignored, never committed, never pushed, never quoted
+into pushed pages.
+
+- Before writing to a project/topic page, check for its twin. Sensitive
+  facts — career, employer opinions, network topology, anything the
+  owner would wince at a stranger reading — go to the TWIN, not the
+  public page.
+- A public page must stand alone as safe: status and public-safe
+  decisions only. It may note "twin exists (not synced)".
+- `wiki/index.md` lists public pages only.
+- A twin referenced but missing on this machine is expected — clones
+  carry only public pages — not an error. Never "helpfully" recreate a
+  missing twin's content on another machine.
+
 ## Page conventions
 
 - Title, one-line status, `Updated: <date>` at the top.

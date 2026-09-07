@@ -295,10 +295,12 @@ private remote).
 ~/vault/                  PRIVATE repo, created by bootstrap
 ├── AGENTS.md             schema: how agents read/write the vault
 ├── raw/                  immutable inbox — sources land here, never edited
-└── wiki/
-    ├── index.md          the hub — every session starts here
-    ├── projects/         one page per project (state, decisions, open questions)
-    └── topics/           cross-project knowledge (research, patterns)
+├── wiki/
+│   ├── index.md          the hub — every session starts here
+│   ├── projects/         one page per project (state, decisions, open questions)
+│   └── topics/           cross-project knowledge (research, patterns)
+└── *.private.md          private twins — gitignored, machine-local, never
+                          pushed; sensitive facts live beside their public page
 
 megacat/                  PUBLIC — the system
 ├── vault-template/       the skeleton bootstrap instantiates ~/vault from
@@ -323,7 +325,9 @@ is profile-blind).
 Fresh machine: `bootstrap.sh` (or the Windows equivalent) creates
 `~/vault` from the template — or clones it, if `VAULT_REMOTE` is set at
 the top of the bootstrap script. **Once the private remote exists, set
-that variable.**
+that variable.** Private twins never leave the machine they were
+written on; a fresh clone simply has no twins until they're written
+there.
 
 ---
 

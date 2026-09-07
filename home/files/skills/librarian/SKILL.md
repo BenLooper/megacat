@@ -30,7 +30,13 @@ Rules, in brief (full schema in `~/vault/AGENTS.md`):
 - `raw/` is immutable — never touch it.
 - Update the existing project/topic page in place; only create a new page
   (from `wiki/projects/_template.md`) for a genuinely new project or topic.
-- Keep `wiki/index.md` listing every page.
+- **Private twins** (`*.private.md`): machine-local, never committed or
+  quoted into pushed pages. Check for a twin before writing to a
+  project/topic page — sensitive facts (career, employer opinions,
+  network topology, anything the owner would wince at a stranger
+  reading) go to the twin. A missing twin on another machine is
+  expected, not an error.
+- Keep `wiki/index.md` listing every page (public pages only).
 - Every claim carries provenance (`Source: raw/…`, repo path, or
   `session <date>`).
 - Write the distilled version, not the transcript. Ephemeral detail does
